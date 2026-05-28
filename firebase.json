@@ -1,0 +1,25 @@
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "predictionleague-25968",
+          "appId": "1:684841369178:android:e2c69f9754e69e2b05e263",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "predictionleague-25968",
+          "configurations": {
+            "android": "1:684841369178:android:e2c69f9754e69e2b05e263"
+          }
+        }
+      }
+    }
+  }
+}
