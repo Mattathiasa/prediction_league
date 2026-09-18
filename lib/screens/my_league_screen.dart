@@ -3,9 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/league_model.dart';
+import '../models/matchup_model.dart';
 import '../models/user_model.dart';
 import '../providers/league_provider.dart';
 import '../services/auth_service.dart';
+import '../services/league_service.dart';
 import 'create_league_screen.dart';
 import 'join_league_screen.dart';
 
@@ -94,14 +96,16 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
                         selected: effective,
                         onSelect: (l) => setState(() => _selected = l),
                       ),
-                    // League info header
-                    _LeagueHeader(league: effective),
-                    // Standings
-                    Expanded(
-                      child: _LeagueStandings(
-                        key: ValueKey(effective.leagueId),
-                        league: effective,
-                        currentUser: currentUser,
+                     // League info header
+                     _LeagueHeader(league: effective),
+                     // Weekly matchups
+                     _WeeklyMatchups(leagueId: effective.leagueId),
+                     // Standings
+                     Expanded(
+                       child: _LeagueStandings(
+                         key: ValueKey(effective.leagueId),
+                         league: effective,
+                         currentUser: currentUser,
                       ),
                     ),
                   ],
@@ -315,6 +319,243 @@ class _LeagueHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Weekly matchups ─────────────────────────────────────────────────────────────
+
+class _WeeklyMatchups extends StatelessWidget {
+  final String leagueId;
+  const _WeeklyMatchups({required this.leagueId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<LeagueMatchup>>(
+      future: LeagueService().getWeeklyMatchups(leagueId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+                child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                        color: Color(0xFF4CAF50), strokeWidth: 2))),
+          );
+        }
+
+        final matchups = snapshot.data ?? [];
+        if (matchups.isEmpty) return const SizedBox.shrink();
+
+        final now = DateTime.now();
+        final weekNum = _weekOfYear(now);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Text(
+                'GW $weekNum Matchups',
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15),
+              ),
+            ),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              itemCount: matchups.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (context, i) => _MatchupCard(matchup: matchups[i]),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  int _weekOfYear(DateTime date) {
+    final start = DateTime(date.year, 1, 1);
+    final firstMonday = (8 - start.weekday) % 7;
+    final firstWeekStart = start.add(Duration(days: firstMonday));
+    if (date.isBefore(firstWeekStart)) return 52;
+    return ((date.difference(firstWeekStart).inDays) / 7).floor() + 1;
+  }
+}
+
+class _MatchupCard extends StatelessWidget {
+  final LeagueMatchup matchup;
+  const _MatchupCard({required this.matchup});
+
+  @override
+  Widget build(BuildContext context) {
+    if (matchup.isBye) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+        child: Row(
+          children: [
+            _MiniAvatar(
+                photoUrl: matchup.home.photoUrl,
+                displayName: matchup.home.displayName),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                '${matchup.home.displayName} (BYE)',
+                style: const TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFD700).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                    color: const Color(0xFFFFD700).withValues(alpha: 0.45),
+                    width: 0.5),
+              ),
+              child: const Text('WON',
+                  style: TextStyle(color: Color(0xFFFFD700), fontSize: 10)),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final home = matchup.home;
+    final away = matchup.away!;
+    final homeColor = matchup.homeWon
+        ? const Color(0xFF4CAF50)
+        : matchup.isDraw
+            ? Colors.white70
+            : const Color(0xFFFF7043);
+    final awayColor = matchup.awayWon
+        ? const Color(0xFF4CAF50)
+        : matchup.isDraw
+            ? Colors.white70
+            : const Color(0xFFFF7043);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Row(
+        children: [
+          // Home
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Text(
+                  '${home.weeklyPoints}',
+                  style: TextStyle(
+                      color: homeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  home.displayName,
+                  style: TextStyle(
+                      color: homeColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 6),
+                _MiniAvatar(photoUrl: home.photoUrl, displayName: home.displayName),
+              ],
+            ),
+          ),
+          // VS divider
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: const Text(
+              'VS',
+              style: TextStyle(color: Colors.white24, fontSize: 11),
+            ),
+          ),
+          // Away
+          Expanded(
+            child: Row(
+              children: [
+                _MiniAvatar(photoUrl: away.photoUrl, displayName: away.displayName),
+                const SizedBox(width: 6),
+                Text(
+                  away.displayName,
+                  style: TextStyle(
+                      color: awayColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '${away.weeklyPoints}',
+                  style: TextStyle(
+                      color: awayColor,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniAvatar extends StatelessWidget {
+  final String photoUrl;
+  final String displayName;
+  const _MiniAvatar({required this.photoUrl, required this.displayName});
+
+  @override
+  Widget build(BuildContext context) {
+    if (photoUrl.isNotEmpty) {
+      return CircleAvatar(
+        radius: 12,
+        backgroundColor: const Color(0xFF4CAF50),
+        child: ClipOval(
+          child: CachedNetworkImage(
+            imageUrl: photoUrl,
+            width: 24,
+            height: 24,
+            fit: BoxFit.cover,
+            errorWidget: (_, __, ___) => _initials(),
+          ),
+        ),
+      );
+    }
+    return CircleAvatar(
+      radius: 12,
+      backgroundColor: const Color(0xFF4CAF50),
+      child: _initials(),
+    );
+  }
+
+  Widget _initials() => Text(
+        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+        style: const TextStyle(
+            fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+      );
 }
 
 // ── League standings ──────────────────────────────────────────────────────────
