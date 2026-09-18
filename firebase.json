@@ -12,11 +12,19 @@
           "fileOutput": "android/app/google-services.json"
         }
       },
+      "ios": {
+        "default": {
+          "projectId": "predictionleague-25968",
+          "appId": "1:684841369178:ios:536a9ba4c093835105e263",
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
       "dart": {
         "lib/firebase_options.dart": {
           "projectId": "predictionleague-25968",
           "configurations": {
-            "android": "1:684841369178:android:e2c69f9754e69e2b05e263"
+            "android": "1:684841369178:android:e2c69f9754e69e2b05e263",
+            "ios": "1:684841369178:ios:536a9ba4c093835105e263"
           }
         }
       }

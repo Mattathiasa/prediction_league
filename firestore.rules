@@ -7,10 +7,11 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Fixtures: any logged-in user can read and sync from the API.
-    // Phase 3 will move writes to a Cloud Function and lock this down.
+    // Fixtures: any logged-in user can read.
+    // Writes are restricted to Cloud Functions (admin SDK) only.
     match /fixtures/{fixtureId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow write: if false; // Only Cloud Functions (admin SDK) can write
     }
 
     // Predictions: users can read/write their own only
