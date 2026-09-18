@@ -1,36 +1,79 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
+import '../config/app_config.dart';
 import '../models/fixture_model.dart';
 
 class FixtureService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
-  // Calls the Cloud Function to sync fixtures from football-data.org.
+  // Fetch from football-data.org, batch-write to Firestore, return the list.
   // Returns only upcoming fixtures so the caller can schedule notifications.
   Future<List<FixtureModel>> syncFixtures() async {
-    try {
-      final result = await _functions.httpsCallable('syncFixtures').call();
-      final data = result.data as Map<String, dynamic>;
-      
-      if (data['success'] != true) {
-        throw Exception(data['message'] ?? 'Fixture sync failed');
-      }
+    final response = await http.get(
+      Uri.parse(AppConfig.scheduledMatches),
+      headers: AppConfig.apiHeaders,
+    );
 
-      // Fetch the upcoming fixtures from Firestore after sync
-      final snap = await _db
-          .collection('fixtures')
-          .where('status', isEqualTo: 'upcoming')
-          .orderBy('kickoff')
-          .limit(20)
-          .get();
-
-      return snap.docs
-          .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
-          .toList();
-    } on FirebaseFunctionsException catch (e) {
-      throw Exception('Fixture sync failed: ${e.message}');
+    if (response.statusCode != 200) {
+      throw Exception(
+          'football-data.org error ${response.statusCode}: ${response.body}');
     }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final matches = body['matches'] as List<dynamic>;
+
+    if (matches.isEmpty) return [];
+
+    final fixtures = matches
+        .map((raw) => FixtureModel.fromApi(raw as Map<String, dynamic>))
+        .toList();
+
+    final batch = _db.batch();
+    for (final fixture in fixtures) {
+      batch.set(
+        _db.collection('fixtures').doc(fixture.fixtureId),
+        fixture.toMap(),
+        SetOptions(merge: true),
+      );
+    }
+    await batch.commit();
+
+    return fixtures.where((f) => f.isUpcoming).toList();
+  }
+
+  // Fetch live and finished matches to update fixtures already in Firestore
+  // with current scores and statuses.
+  Future<int> syncLiveAndFinished() async {
+    final response = await http.get(
+      Uri.parse(AppConfig.liveAndFinishedMatches),
+      headers: AppConfig.apiHeaders,
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'football-data.org error ${response.statusCode}: ${response.body}');
+    }
+
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final matches = body['matches'] as List<dynamic>;
+
+    if (matches.isEmpty) return 0;
+
+    final batch = _db.batch();
+    for (final raw in matches) {
+      final fixture = FixtureModel.fromApi(raw as Map<String, dynamic>);
+      batch.update(
+        _db.collection('fixtures').doc(fixture.fixtureId),
+        {
+          'status': fixture.status,
+          if (fixture.homeScore != null) 'homeScore': fixture.homeScore,
+          if (fixture.awayScore != null) 'awayScore': fixture.awayScore,
+        },
+      );
+    }
+    await batch.commit();
+    return matches.length;
   }
 
   // Real-time stream from Firestore — no API call needed.
@@ -53,7 +96,6 @@ class FixtureService {
   }
 
   // Admin: all non-finished fixtures, sorted by kickoff client-side.
-  // Uses whereIn so no composite index needed (no orderBy on server).
   Stream<List<FixtureModel>> adminFixtures() {
     return _db
         .collection('fixtures')
@@ -69,7 +111,6 @@ class FixtureService {
   }
 
   // Results screen: finished fixtures, newest first, client-side sort.
-  // Single-field where clause — auto-indexed, no composite index required.
   Stream<List<FixtureModel>> finishedFixtures() {
     return _db
         .collection('fixtures')
