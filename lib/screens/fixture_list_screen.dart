@@ -145,8 +145,8 @@ class _FixtureCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: locked
-                ? Colors.white.withOpacity(0.06)
-                : const Color(0xFF4CAF50).withOpacity(0.25),
+                ? Colors.white.withValues(alpha: 0.06)
+                : const Color(0xFF4CAF50).withValues(alpha: 0.25),
           ),
         ),
         child: Column(
@@ -275,9 +275,9 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.45), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.45), width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -308,7 +308,7 @@ class _ErrorBanner extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: Colors.red.shade900.withOpacity(0.85),
+      color: Colors.red.shade900.withValues(alpha: 0.85),
       child: Text(
         'Sync failed: $message',
         style: const TextStyle(color: Colors.white70, fontSize: 12),

@@ -309,7 +309,7 @@ class _AdminFixtureCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         children: [
@@ -585,10 +585,10 @@ class _StepBtn extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: const Color(0xFF4CAF50).withOpacity(0.12),
+          color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
           border:
-              Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+              Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
         ),
         child: Icon(icon, color: const Color(0xFF4CAF50), size: 20),
       ),
@@ -611,7 +611,7 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F1A),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.06))),
+        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Row(
         children: [

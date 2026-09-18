@@ -85,10 +85,10 @@ class _ProfileHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF4CAF50).withOpacity(0.15),
+            color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
             border:
-                Border.all(color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
           ),
           child: Text(
             '${user.totalPoints} pts total',
@@ -123,7 +123,7 @@ class _StatsRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -157,7 +157,7 @@ class _StatsRow extends StatelessWidget {
   }
 
   Widget _divider() =>
-      Container(width: 1, height: 40, color: Colors.white.withOpacity(0.08));
+      Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.08));
 }
 
 class _Stat extends StatelessWidget {
@@ -247,7 +247,7 @@ class _BadgeCard extends StatelessWidget {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: earned ? info.color.withOpacity(0.4) : Colors.white.withOpacity(0.05)),
+            color: earned ? info.color.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -257,8 +257,8 @@ class _BadgeCard extends StatelessWidget {
             height: 52,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: color.withOpacity(0.15),
-              border: Border.all(color: color.withOpacity(0.5)),
+              color: color.withValues(alpha: 0.15),
+              border: Border.all(color: color.withValues(alpha: 0.5)),
             ),
             child: Icon(info.icon, color: color, size: 26),
           ),
@@ -274,7 +274,7 @@ class _BadgeCard extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             earned ? info.description : '???',
-            style: TextStyle(color: textColor.withOpacity(0.7), fontSize: 10),
+            style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 10),
             textAlign: TextAlign.center,
             maxLines: 2,
           ),

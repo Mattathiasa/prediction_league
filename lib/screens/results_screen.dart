@@ -120,7 +120,7 @@ class _SummaryBar extends StatelessWidget {
   }
 
   Widget _divider() => Container(
-      width: 1, height: 32, color: Colors.white.withOpacity(0.1));
+      width: 1, height: 32, color: Colors.white.withValues(alpha: 0.1));
 }
 
 class _SummaryStat extends StatelessWidget {
@@ -169,7 +169,7 @@ class _ResultCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
@@ -237,10 +237,10 @@ class _ResultCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                   border:
-                      Border.all(color: color.withOpacity(0.45), width: 0.5),
+                      Border.all(color: color.withValues(alpha: 0.45), width: 0.5),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -255,7 +255,7 @@ class _ResultCard extends StatelessWidget {
                     const SizedBox(width: 5),
                     Text(label,
                         style: TextStyle(
-                            color: color.withOpacity(0.8),
+                            color: color.withValues(alpha: 0.8),
                             fontSize: 11)),
                   ],
                 ),

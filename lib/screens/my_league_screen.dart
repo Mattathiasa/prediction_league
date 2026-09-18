@@ -286,10 +286,10 @@ class _LeagueHeader extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withOpacity(0.12),
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
-                    color: const Color(0xFF4CAF50).withOpacity(0.4)),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -433,8 +433,8 @@ class _MemberRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isMe
-              ? const Color(0xFF4CAF50).withOpacity(0.4)
-              : Colors.white.withOpacity(0.05),
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.05),
         ),
       ),
       child: Row(

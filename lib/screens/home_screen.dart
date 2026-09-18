@@ -165,7 +165,7 @@ class _ProfileCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4CAF50).withOpacity(0.2),
+                    color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                         color: const Color(0xFF4CAF50), width: 0.5),
@@ -296,7 +296,7 @@ class _StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,7 +345,7 @@ class _FixturesNavCard extends StatelessWidget {
           ),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: const Color(0xFF4CAF50).withOpacity(0.35)),
+              color: const Color(0xFF4CAF50).withValues(alpha: 0.35)),
         ),
         child: const Row(
           children: [
@@ -393,7 +393,7 @@ class _ResultsNavCard extends StatelessWidget {
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-              color: const Color(0xFFFFD700).withOpacity(0.3)),
+              color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
@@ -441,7 +441,7 @@ class _LeaderboardNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF29B6F6).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFF29B6F6).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
@@ -481,7 +481,7 @@ class _MyLeagueNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFF7043).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFFF7043).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
@@ -521,7 +521,7 @@ class _ProfileNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFBDBDBD).withOpacity(0.3)),
+          border: Border.all(color: const Color(0xFFBDBDBD).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [

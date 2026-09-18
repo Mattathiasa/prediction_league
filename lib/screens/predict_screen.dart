@@ -148,7 +148,7 @@ class _PredictScreenState extends State<PredictScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4CAF50),
                     disabledBackgroundColor:
-                        const Color(0xFF4CAF50).withOpacity(0.4),
+                        const Color(0xFF4CAF50).withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
@@ -262,10 +262,10 @@ class _CountdownBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withOpacity(0.08),
+        color: const Color(0xFF4CAF50).withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border:
-            Border.all(color: const Color(0xFF4CAF50).withOpacity(0.3)),
+            Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -297,9 +297,9 @@ class _LockedBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.red.withOpacity(0.08),
+        color: Colors.red.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.red.withOpacity(0.3)),
+        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
       ),
       child: const Row(
         children: [
@@ -330,7 +330,7 @@ class _LockedPredictionSummary extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -376,7 +376,7 @@ class _ScoreCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.06)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -507,12 +507,12 @@ class _StepBtn extends StatelessWidget {
         height: 38,
         decoration: BoxDecoration(
           color: active
-              ? const Color(0xFF4CAF50).withOpacity(0.12)
-              : Colors.white.withOpacity(0.04),
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: active
-                ? const Color(0xFF4CAF50).withOpacity(0.4)
+                ? const Color(0xFF4CAF50).withValues(alpha: 0.4)
                 : Colors.white12,
           ),
         ),

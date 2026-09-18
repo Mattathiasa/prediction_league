@@ -112,7 +112,7 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
                   color: const Color(0xFF1A1A2E),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: const Color(0xFF4CAF50).withOpacity(0.3)),
+                      color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
                 ),
                 child: Column(
                   children: [
