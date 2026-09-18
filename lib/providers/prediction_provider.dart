@@ -8,6 +8,8 @@ class PredictionProvider extends ChangeNotifier {
   final PredictionService _service = PredictionService();
 
   StreamSubscription<List<PredictionModel>>? _subscription;
+  Stream<List<HistoryEntry>>? _historyStream;
+  String? _historyUserId;
 
   // Keyed by fixtureId for O(1) lookup in fixture list
   Map<String, PredictionModel> _predictions = {};
@@ -36,6 +38,14 @@ class PredictionProvider extends ChangeNotifier {
     _subscription = null;
     _predictions = {};
     notifyListeners();
+  }
+
+  Stream<List<HistoryEntry>> historyStream(String userId) {
+    if (_historyStream == null || _historyUserId != userId) {
+      _historyUserId = userId;
+      _historyStream = _service.userHistory(userId);
+    }
+    return _historyStream!;
   }
 
   Future<bool> submitPrediction({
@@ -78,6 +88,7 @@ class PredictionProvider extends ChangeNotifier {
   @override
   void dispose() {
     _subscription?.cancel();
+    _historyStream = null;
     super.dispose();
   }
 }
