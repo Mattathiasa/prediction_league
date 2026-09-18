@@ -180,8 +180,8 @@ class _RankCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isCurrentUser
-              ? const Color(0xFF4CAF50).withOpacity(0.45)
-              : Colors.white.withOpacity(0.05),
+              ? const Color(0xFF4CAF50).withValues(alpha: 0.45)
+              : Colors.white.withValues(alpha: 0.05),
         ),
       ),
       child: Row(
