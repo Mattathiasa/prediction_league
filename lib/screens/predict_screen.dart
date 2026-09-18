@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/fixture_model.dart';
 import '../models/prediction_model.dart';
 import '../providers/prediction_provider.dart';
@@ -169,7 +170,10 @@ class _PredictScreenState extends State<PredictScreen> {
                 ),
               ),
             if (locked && _existing != null)
-              _LockedPredictionSummary(prediction: _existing!),
+              _LockedPredictionSummary(
+              prediction: _existing!,
+              fixture: widget.fixture,
+            ),
           ],
         ),
       ),
@@ -320,7 +324,9 @@ class _LockedBanner extends StatelessWidget {
 
 class _LockedPredictionSummary extends StatelessWidget {
   final PredictionModel prediction;
-  const _LockedPredictionSummary({required this.prediction});
+  final FixtureModel fixture;
+  const _LockedPredictionSummary(
+      {required this.prediction, required this.fixture});
 
   @override
   Widget build(BuildContext context) {
@@ -333,18 +339,31 @@ class _LockedPredictionSummary extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           const Icon(Icons.check_circle_outline,
               color: Color(0xFF4CAF50), size: 18),
           const SizedBox(width: 8),
-          Text(
-            'Your prediction: '
-            '${prediction.homeGuess} – ${prediction.awayGuess}',
-            style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 15,
-                fontWeight: FontWeight.w600),
+          Expanded(
+            child: Text(
+              'Your prediction: '
+              '${prediction.homeGuess} – ${prediction.awayGuess}',
+              style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          GestureDetector(
+            onTap: () => SharePlus.instance.share(
+              ShareParams(
+                text: 'I predicted ${prediction.homeGuess}\u2013${prediction.awayGuess} '
+                    'for ${fixture.homeTeam} vs ${fixture.awayTeam}. '
+                    'Join my Prediction League!',
+              ),
+            ),
+            child: const Icon(Icons.share, color: Colors.white38, size: 18),
           ),
         ],
       ),
