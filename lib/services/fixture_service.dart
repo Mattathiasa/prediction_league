@@ -1,51 +1,39 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../config/app_config.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/fixture_model.dart';
 
 class FixtureService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instance;
 
-  // Fetch from football-data.org, batch-write to Firestore, return the list.
+  // Calls the Cloud Function to sync fixtures from football-data.org.
   // Returns only upcoming fixtures so the caller can schedule notifications.
   Future<List<FixtureModel>> syncFixtures() async {
-    final response = await http.get(
-      Uri.parse(AppConfig.scheduledMatches),
-      headers: AppConfig.apiHeaders,
-    );
+    try {
+      final result = await _functions.httpsCallable('syncFixtures').call();
+      final data = result.data as Map<String, dynamic>;
+      
+      if (data['success'] != true) {
+        throw Exception(data['message'] ?? 'Fixture sync failed');
+      }
 
-    if (response.statusCode != 200) {
-      throw Exception(
-          'football-data.org error ${response.statusCode}: ${response.body}');
+      // Fetch the upcoming fixtures from Firestore after sync
+      final snap = await _db
+          .collection('fixtures')
+          .where('status', isEqualTo: 'upcoming')
+          .orderBy('kickoff')
+          .limit(20)
+          .get();
+
+      return snap.docs
+          .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
+          .toList();
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception('Fixture sync failed: ${e.message}');
     }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final matches = body['matches'] as List<dynamic>;
-
-    if (matches.isEmpty) return [];
-
-    final fixtures = matches
-        .map((raw) => FixtureModel.fromApi(raw as Map<String, dynamic>))
-        .toList();
-
-    final batch = _db.batch();
-    for (final fixture in fixtures) {
-      batch.set(
-        _db.collection('fixtures').doc(fixture.fixtureId),
-        fixture.toMap(),
-        SetOptions(merge: true),
-      );
-    }
-    await batch.commit();
-
-    return fixtures.where((f) => f.isUpcoming).toList();
   }
 
   // Real-time stream from Firestore — no API call needed.
-  // NOTE: First run will fail until you create the composite index:
-  //   Collection: fixtures  |  Fields: status ASC, kickoff ASC
-  // Firestore will print a direct link in the debug console on first query.
   Stream<List<FixtureModel>> upcomingFixtures() {
     return _db
         .collection('fixtures')
@@ -72,12 +60,12 @@ class FixtureService {
         .where('status', whereIn: ['upcoming', 'live'])
         .snapshots()
         .map((snap) {
-          final list = snap.docs
-              .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
-              .toList()
-            ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
-          return list;
-        });
+      final list = snap.docs
+          .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
+          .toList()
+        ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
+      return list;
+    });
   }
 
   // Results screen: finished fixtures, newest first, client-side sort.
@@ -89,11 +77,11 @@ class FixtureService {
         .limit(30)
         .snapshots()
         .map((snap) {
-          final list = snap.docs
-              .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
-              .toList()
-            ..sort((a, b) => b.kickoff.compareTo(a.kickoff));
-          return list;
-        });
+      final list = snap.docs
+          .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
+          .toList()
+        ..sort((a, b) => b.kickoff.compareTo(a.kickoff));
+      return list;
+    });
   }
 }
