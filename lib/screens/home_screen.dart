@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../models/user_model.dart';
 import 'admin_screen.dart';
 import 'fixture_list_screen.dart';
+import 'history_screen.dart';
 import 'leaderboard_screen.dart';
 import 'my_league_screen.dart';
 import 'profile_screen.dart';
@@ -87,6 +88,8 @@ class HomeScreen extends StatelessWidget {
             _FixturesNavCard(),
             const SizedBox(height: 12),
             _ResultsNavCard(),
+            const SizedBox(height: 12),
+            _HistoryNavCard(),
             const SizedBox(height: 12),
             _LeaderboardNavCard(),
             const SizedBox(height: 12),
@@ -414,6 +417,55 @@ class _ResultsNavCard extends StatelessWidget {
                   SizedBox(height: 2),
                   Text(
                     'See finished matches and your score',
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.white38),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HistoryNavCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const HistoryScreen()),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A2E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+              color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+        ),
+        child: const Row(
+          children: [
+            Icon(Icons.history,
+                color: Color(0xFFFFD700), size: 28),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Prediction History',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Review past predictions and points',
                     style: TextStyle(color: Colors.white38, fontSize: 12),
                   ),
                 ],
