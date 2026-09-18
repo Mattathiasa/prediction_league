@@ -23,6 +23,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
   bool _unlocked = false;
   bool _resetting = false;
+  bool _syncing = false;
 
   @override
   void initState() {
@@ -103,6 +104,23 @@ class _AdminScreenState extends State<AdminScreen> {
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 17)),
+        actions: [
+          if (_unlocked)
+            IconButton(
+              icon: _syncing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white70,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.sync, color: Colors.white70),
+              tooltip: 'Sync fixtures from API',
+              onPressed: _syncing ? null : _syncFixtures,
+            ),
+        ],
       ),
       body: _unlocked
           ? Column(
@@ -168,6 +186,34 @@ class _AdminScreenState extends State<AdminScreen> {
       );
     } finally {
       if (mounted) setState(() => _resetting = false);
+    }
+  }
+
+  Future<void> _syncFixtures() async {
+    setState(() => _syncing = true);
+    try {
+      final upcoming = await _fixtureService.syncFixtures();
+      final updated = await _fixtureService.syncLiveAndFinished();
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              'Synced ${upcoming.length} upcoming fixtures,'
+              ' updated $updated live/finished matches'),
+          backgroundColor: const Color(0xFF4CAF50),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sync failed: $e'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
     }
   }
 }
