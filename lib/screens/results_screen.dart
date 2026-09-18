@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/fixture_model.dart';
 import '../models/prediction_model.dart';
 import '../providers/prediction_provider.dart';
@@ -213,55 +214,76 @@ class _ResultCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Prediction + points row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // My prediction
-              Row(
-                children: [
-                  const Icon(Icons.person_outline,
-                      size: 14, color: Colors.white38),
-                  const SizedBox(width: 5),
-                  Text(
-                    prediction != null
-                        ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
-                        : 'No prediction',
-                    style: const TextStyle(
-                        color: Colors.white54, fontSize: 13),
-                  ),
-                ],
-              ),
-              // Points badge
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
-                  border:
-                      Border.all(color: color.withValues(alpha: 0.45), width: 0.5),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      pts >= 0 ? '+$pts' : '$pts',
-                      style: TextStyle(
-                          color: color,
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(label,
-                        style: TextStyle(
-                            color: color.withValues(alpha: 0.8),
-                            fontSize: 11)),
-                  ],
-                ),
-              ),
-            ],
-          ),
+               // Prediction + points row
+           Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               // My prediction
+               Row(
+                 children: [
+                   const Icon(Icons.person_outline,
+                       size: 14, color: Colors.white38),
+                   const SizedBox(width: 5),
+                   Text(
+                     prediction != null
+                         ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
+                         : 'No prediction',
+                     style: const TextStyle(
+                         color: Colors.white54, fontSize: 13),
+                   ),
+                 ],
+               ),
+               // Points badge + share button
+               Row(
+                 children: [
+                   // Points badge
+                   Container(
+                     padding:
+                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                     decoration: BoxDecoration(
+                       color: color.withValues(alpha: 0.12),
+                       borderRadius: BorderRadius.circular(8),
+                       border: Border.all(
+                           color: color.withValues(alpha: 0.45), width: 0.5),
+                     ),
+                     child: Row(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                         Text(
+                           pts >= 0 ? '+$pts' : '$pts',
+                           style: TextStyle(
+                               color: color,
+                               fontSize: 13,
+                               fontWeight: FontWeight.bold),
+                         ),
+                         const SizedBox(width: 5),
+                         Text(label,
+                             style: TextStyle(
+                                 color: color.withValues(alpha: 0.8),
+                                 fontSize: 11)),
+                       ],
+                     ),
+                   ),
+                   // Share button
+                    if (prediction != null)
+                     Padding(
+                       padding: const EdgeInsets.only(left: 8),
+                       child: GestureDetector(
+                         onTap: () => SharePlus.instance.share(
+                           ShareParams(
+                             text: '${prediction!.homeGuess}\u2013${prediction!.awayGuess} '
+                                 'for ${fixture.homeTeam} vs ${fixture.awayTeam} '
+                                 '(${fixture.homeScore ?? '?'}\u2013${fixture.awayScore ?? '?'}) '
+                                 '\u2192 $label ($pts pts)',
+                           ),
+                         ),
+                         child: const Icon(Icons.share, color: Colors.white38, size: 18),
+                       ),
+                     ),
+                 ],
+               ),
+             ],
+           ),
         ],
       ),
     );
