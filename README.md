@@ -133,24 +133,39 @@ prediction_league/
 
 ```
 User predicts scores
-  → Firestore (predictions collection)
+  → Firestore (predictions collection, owner-only, lock-enforced)
 
-Fixture data (football-data.org API, client-side)
-   → Firestore (fixtures collection)
-   → Client streams (upcomingFixtures, finishedFixtures)
+Fixture data (football-data.org API, server-side)
+  → Cloud Function (syncFixtures, admin-only)
+  → Firestore (fixtures collection, server-side writes only)
+  → Client streams (upcomingFixtures, finishedFixtures)
 
 Admin enters final score
-  → ResultService.submitResult()
+  → Cloud Function (scoreFixtureResults, admin-only)
   → Firestore batch writes (predictions + users + fixtures)
   → BadgeService.checkAndAwardPostResultBadges()
   → Local notification via NotificationService
 ```
 
-### Fixture Syncing
+### Fixture Syncing (Server-Side)
 
-The football-data.org API key is stored in `lib/config/app_config.dart`. The client app fetches upcoming fixtures directly via the API and writes them to Firestore. This approach was chosen over Cloud Functions due to Spark Plan free-tier limitations.
+The football-data.org API key is stored in **Cloud Functions environment variables** (never in the client). The `syncFixtures` callable function fetches fixtures server-side, batch-writes to Firestore, and returns a summary count. The client calls this function instead of accessing the API directly.
 
-> **Note:** In a production deployment with a paid Firebase plan, you may prefer the Cloud Functions approach (see `functions/`) to keep the API key server-side. The functions directory still contains `syncFixtures` and `updateFixtureStatus` for that use case.
+A scheduled function (`updateFixtureStatus`) runs every 10 minutes during match hours to auto-update fixture statuses and scores.
+
+**Requirements:** Blaze plan for scheduled functions. On Spark Plan, use the admin screen's sync button to trigger `syncFixtures` manually.
+
+### Admin Authentication
+
+Admin access is verified server-side via the `admin_roles` Firestore collection. To grant admin access to a user:
+
+```bash
+firebase firestore:indexes  # (apply rules first)
+# Then add via Firebase console or a one-time setup script:
+firebase functions:call checkAdmin --data '{}'
+```
+
+Or add a document to `admin_roles/{uid}` with `{isAdmin: true}` directly in the Firebase console.
 
 ---
 
@@ -160,17 +175,22 @@ The football-data.org API key is stored in `lib/config/app_config.dart`. The cli
 
 | Collection | Document Fields |
 |---|---|
-| **users** (`{uid}`) | `displayName`, `photoUrl`, `totalPoints`, `weeklyPoints`, `streak`, `bestStreak`, `accuracy`, `badgeIds[]` |
+| **users** (`{uid}`) | `displayName`, `photoUrl`, `totalPoints`, `weeklyPoints`, `streak`, `bestStreak`, `accuracy`, `badgeIds[]`, `predictionsCount`, `correctResults`, `exactScoreCount`, `highestWeeklyPoints`, `isPremium` |
 | **fixtures** (`{fixtureId}`) | `homeTeam`, `awayTeam`, `kickoff` (Timestamp), `homeScore`, `awayScore`, `status` (`upcoming`/`live`/`finished`), `competition` |
 | **predictions** (`{userId}_{fixtureId}`) | `userId`, `fixtureId`, `homeGuess`, `awayGuess`, `pointsEarned`, `submittedAt`, `locked` |
-| **leagues** (`{leagueId}`) | `name`, `adminId`, `memberIds[]`, `inviteCode`, `createdAt` |
+| **leagues** (`{leagueId}`) | `name`, `adminId`, `memberIds[]` (max 20), `inviteCode`, `createdAt` |
+| **admin_roles** (`{uid}`) | `isAdmin: true` (server-managed only) |
 
 ### Security Rules
 
+All collections require App Check. Enable enforcement in the Firebase console (App Check → Firestore → Enforce).
+
 ```
-users/{userId}       → read/write only by the owner
-fixtures/{fixtureId}  → read by any authenticated user; writes denied to clients (admin SDK only)
-predictions/{predId} → read/write only by the prediction's owner
+users/{userId}         → read/write by owner only (isPremium server-managed)
+fixtures/{fixtureId}   → read by any authenticated user; create/update/delete denied to clients (Cloud Functions only)
+predictions/{predId}   → create by owner (restricted fields); update by owner before lock only; pointsEarned/locked server-managed
+leagues/{leagueId}     → read by members; create/manage by admin; updates limited to name, memberIds, inviteCode
+admin_roles/{uid}      → read by owner; no client writes
 ```
 
 ---
@@ -182,7 +202,13 @@ predictions/{predId} → read/write only by the prediction's owner
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (stable channel, >= 3.3.4)
 - Node.js 20+ (for Firebase Functions)
 - A [football-data.org](https://www.football-data.org/client/register) API key (free tier: 10 calls/min)
-- A Firebase project with the following services enabled
+- A Firebase project with the following services enabled (Blaze plan recommended)
+  - Authentication (Google Sign-In)
+  - Firestore
+  - Cloud Functions
+  - App Check
+  - Cloud Messaging (Android)
+  - (Optional) AdMob for ads
 
 ### 1. Clone and Install
 
@@ -216,18 +242,26 @@ This generates `lib/firebase_options.dart` (excluded from version control — se
 
 ### 4. Set Up the football-data.org API Key
 
-Add your API key directly to `lib/config/app_config.dart`:
+Configure the API key as a Firebase Functions environment variable:
 
-```dart
-class AppConfig {
-  static const String footballDataApiKey = 'YOUR_API_KEY';
-  // ...
-}
+```bash
+cd functions
+npm install
+firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
 ```
 
-> **For production:** Consider moving the API key to Cloud Functions (see `functions/`) and restricting Firestore writes to the Admin SDK only. The current client-side approach is suitable for development and free-tier usage.
+> **Security:** The API key lives only in Cloud Functions environment variables and is never exposed to the client. The `syncFixtures` callable function uses it server-side.
 
-### 5. Deploy
+> **Admin setup:** Add your Firebase UID to the `admin_roles` collection in Firestore:
+> ```
+> admin_roles/{your_uid} → { isAdmin: true }
+> ```
+
+### 5. Enable App Check
+
+In the Firebase console, navigate to App Check → Firestore → Enforce. This prevents non-genuine clients from accessing your data.
+
+### 6. Deploy
 
 ```bash
 firebase deploy
@@ -236,8 +270,8 @@ firebase deploy
 ### 6. Run Locally
 
 ```bash
-# Start the Firebase emulator (Firestore)
-firebase emulators:start --only firestore
+# Start the Firebase emulator (Firestore + Functions)
+firebase emulators:start --only firestore,functions
 
 # In another terminal, run the Flutter app
 flutter run
@@ -280,8 +314,11 @@ Located in `functions/src/index.ts`:
 
 | Function | Type | Trigger | Description |
 |---|---|---|---|
-| `syncFixtures` | Callable (`https.onCall`) | Client call | Fetches upcoming PL fixtures from football-data.org, batch-writes to Firestore |
-| `updateFixtureStatus` | Scheduled (`pubsub.schedule`) | Every 5 minutes | Updates fixture statuses for finished/in-play matches |
+| `syncFixtures` | Callable (`https.onCall`) | Admin client call | Fetches upcoming PL fixtures from football-data.org (server-side), batch-writes to Firestore |
+| `scoreFixtureResults` | Callable (`https.onCall`) | Admin client call | Scores all predictions for a fixture atomically (with idempotency guard) |
+| `updateFixtureStatus` | Scheduled (`pubsub.schedule`) | Every 10 min (match hours) | Updates live/finished fixture statuses and scores |
+| `resetWeeklyPoints` | Scheduled (`pubsub.schedule`) | Every Monday 07:00 UTC | Resets all users' weeklyPoints to 0 |
+| `checkAdmin` | Callable (`https.onCall`) | Any authenticated user | Verifies admin access via `admin_roles` collection |
 
 ```bash
 cd functions
@@ -294,13 +331,33 @@ npm run deploy    # Deploy Functions only
 
 ## Configuration Reference
 
-### Admin PIN
+### Admin Authentication
 
-The admin PIN is defined in `lib/config/app_config.dart` and defaults to `1234`. Change it before deploying if you need a different PIN.
+Admin access is verified **server-side** via the `admin_roles` Firestore collection. There is no client-side PIN. To grant admin access:
+
+1. Add your Firebase UID to `admin_roles/{uid}` with `{isAdmin: true}` in the Firebase console
+2. The app will call the `checkAdmin` Cloud Function on admin screen open
 
 ### Prediction Lock Window
 
 The prediction lock window is hardcoded to 1 hour before kickoff (`FixtureModel.isLocked`).
+
+### Monetization
+
+The app supports AdMob banner ads and premium in-app subscriptions:
+
+**AdMob Ads**
+- Banner ads are shown at the bottom of the HomeScreen for non-premium users
+- Ad unit ID: `ca-app-pub-3210681117962880~9348060115`
+- Replace with your production AdMob ID before publishing
+- Initialize Google Mobile Ads in `main.dart` via `MobileAds.instance.initialize()`
+
+**Premium Subscriptions**
+- In-app products: `premium_monthly`, `remove_ads`
+- Premium state stored in Firestore (`users/{uid}.isPremium`) — server-managed
+- Purchase flow handled by `SubscriptionService` (initialized on auth state change)
+- PaywallScreen accessible via HomeScreen → menu → "Go Premium"
+- Features: Ad-free, premium badge, early access, priority sync
 
 ---
 

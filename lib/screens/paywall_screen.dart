@@ -70,33 +70,31 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   const SizedBox(height: 32),
                   const _FeatureCard(
                     icon: Icons.bar_chart_rounded,
-                    title: 'Advanced Stats',
-                    description: 'xG predictions, goal difference heatmaps, '
-                        'and detailed accuracy analysis',
+                    title: 'Ad-Free Experience',
+                    description: 'No banners or interstitial ads anywhere '
+                        'in the app',
                     color: Color(0xFF29B6F6),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.emoji_events_rounded,
-                    title: 'Custom Leagues',
-                    description: 'Create leagues with up to 50 members '
-                        'and custom scoring rules',
+                    title: 'Premium Badge',
+                    description: 'Special badge on leaderboards and profile',
                     color: Color(0xFF4CAF50),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.history_rounded,
-                    title: 'Full History',
-                    description: 'Export your prediction history and stats '
-                        'as CSV',
+                    title: 'Priority Sync',
+                    description: 'Server-side fixture syncing and '
+                        'priority support',
                     color: Color(0xFFFFD700),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.block,
-                    title: 'Ad-Free',
-                    description: 'No banners or interstitial ads anywhere '
-                        'in the app',
+                    title: 'Early Access',
+                    description: 'Test new features before public release',
                     color: Color(0xFF9C27B0),
                   ),
                   const SizedBox(height: 32),
