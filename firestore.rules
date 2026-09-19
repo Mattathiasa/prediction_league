@@ -78,16 +78,16 @@ service cloud.firestore {
 
       allow update: if isAppChecked()
         && resource.data.adminId == request.auth.uid
-        && request.resource.data.keys().hasOnly([
-          'name', 'memberIds', 'inviteCode'
-        ]);
+        && request.resource.data.keys().hasOnly(['name', 'memberIds', 'inviteCode'])
+        && request.resource.data.memberIds.size() <= 20;
 
       allow delete: if isAppChecked()
         && resource.data.adminId == request.auth.uid;
     }
 
-    // ── Admin claims ────────────────────────────────────────────────────────────
-    // Reserved for future use: server-side admin verification via Custom Claims.
+    // ── Admin roles ──────────────────────────────────────────────────────────────
+    // Server-managed collection — only writable by Cloud Functions.
+    // Used by checkAdmin callable function for PIN-free admin verification.
     match /admin_roles/{userId} {
       allow read: if isAppChecked() && request.auth.uid == userId;
       allow create, update, delete: if false;

@@ -9,6 +9,8 @@ class LeagueService {
 
   // ── Invite code ────────────────────────────────────────────────────────────
 
+  static const int maxLeagueMembers = 20;
+
   String generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random.secure();
@@ -57,6 +59,12 @@ class LeagueService {
 
     if (league.memberIds.contains(userId)) {
       throw Exception('You are already a member of "${league.name}".');
+    }
+
+    if (league.memberIds.length >= maxLeagueMembers) {
+      throw Exception(
+          'This league is full (${league.memberIds.length}/$maxLeagueMembers members). '
+          'Ask the admin to create a new league.');
     }
 
     await doc.reference.update({

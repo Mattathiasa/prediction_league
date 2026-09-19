@@ -1,22 +1,20 @@
 class AppConfig {
-  // Get your free key at https://www.football-data.org/client/register
-  // Free tier: 10 calls/min, Premier League included
-  static const String footballDataApiKey = '67ea0c0cacb24129947683063d4130db';
-
-  static const String _base = 'https://api.football-data.org/v4';
-
-  // Upcoming Premier League matches (SCHEDULED + TIMED)
-  static const String scheduledMatches =
-      '$_base/competitions/PL/matches?status=SCHEDULED,TIMED&limit=20';
-
-  // Live + finished matches — used to update fixture statuses and scores
-  static const String liveAndFinishedMatches =
-      '$_base/competitions/PL/matches?status=FINISHED,IN_PLAY,PAUSED,HALFTIME&limit=50';
+  // The football-data.org API key is no longer stored in the client.
+  // Fixture syncing is handled server-side via Cloud Functions
+  // (see functions/src/index.ts), which retrieve the key from
+  // Firebase Functions environment variables.
+  //
+  // Set your API key with:
+  //   firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
+  //
+  // The football-data.org API key is never committed or exposed to clients.
 
   static Map<String, String> get apiHeaders => {
-        'X-Auth-Token': footballDataApiKey,
+        'X-Auth-Token': '',
       };
 
   // Change this to your preferred admin PIN
+  // NOTE: For production, replace with server-side admin verification
+  // via Firebase Custom Claims. This PIN is a client-side gate only.
   static const String adminPin = '1234';
 }

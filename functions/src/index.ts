@@ -95,9 +95,12 @@ export const syncFixtures = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
   }
 
-  // Verify admin claim
-  const caller = await admin.auth().getUser(context.auth.uid);
-  if (!caller.customClaims?.isAdmin) {
+  // Verify admin via admin_roles collection
+  const adminDoc = await db
+    .collection('admin_roles')
+    .doc(context.auth.uid)
+    .get();
+  if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
     throw new functions.https.HttpsError(
       'permission-denied',
       'Admin access required'
@@ -155,6 +158,27 @@ export const syncFixtures = functions.https.onCall(async (data, context) => {
   }
 });
 
+// ── Callable: checkAdmin ────────────────────────────────────────────────────────
+
+export const checkAdmin = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Sign in required'
+      );
+    }
+
+    // Check admin_roles collection (managed server-side only)
+    const adminDoc = await db
+      .collection('admin_roles')
+      .doc(context.auth.uid)
+      .get();
+
+    return { isAdmin: adminDoc.exists && adminDoc.data()?.isAdmin === true };
+  }
+);
+
 // ── Callable: scoreFixtureResults ─────────────────────────────────────────────
 
 export const scoreFixtureResults = functions.https.onCall(
@@ -166,9 +190,12 @@ export const scoreFixtureResults = functions.https.onCall(
       );
     }
 
-    // Verify admin claim
-    const caller = await admin.auth().getUser(context.auth.uid);
-    if (!caller.customClaims?.isAdmin) {
+    // Verify admin via admin_roles collection
+    const adminDoc = await db
+      .collection('admin_roles')
+      .doc(context.auth.uid)
+      .get();
+    if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
       throw new functions.https.HttpsError(
         'permission-denied',
         'Admin access required'
@@ -180,12 +207,23 @@ export const scoreFixtureResults = functions.https.onCall(
     const awayScore: number = data.awayScore;
     const currentUserId: string = data.currentUserId || '';
 
+    // Idempotency guard: skip if fixture is already scored
     const fixtureSnap = await db.collection('fixtures').doc(fixtureId).get();
     if (!fixtureSnap.exists) {
       throw new functions.https.HttpsError(
         'not-found',
         'Fixture not found'
       );
+    }
+
+    // Idempotency guard: skip if fixture is already scored
+    const fixtureData = fixtureSnap.data();
+    if (fixtureData && fixtureData.status === 'finished') {
+      return {
+        skipped: true,
+        message: 'Fixture already scored',
+        pointsEarned: null,
+      };
     }
 
     // Update fixture with final score
@@ -331,17 +369,17 @@ export const resetWeeklyPoints = functions.pubsub
   .onRun(async (context) => {
     const snap = await db.collection('users').get();
 
-    const batch = db.batch();
     let count = 0;
-    for (var i = 0; i < snap.docs.length; i += 500) {
+    for (let i = 0; i < snap.docs.length; i += 500) {
+      const batch = db.batch();
       const end = Math.min(i + 500, snap.docs.length);
       for (let j = i; j < end; j++) {
         batch.update(snap.docs[j].reference, { weeklyPoints: 0 });
         count++;
       }
+      await batch.commit();
     }
 
-    await batch.commit();
     console.log(`Reset weekly points for ${count} users`);
     return null;
   });

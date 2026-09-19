@@ -24,8 +24,8 @@ void main() async {
 
   await FirebaseAppCheck.instance.activate(
     webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.debug,
+    androidProvider: AndroidProvider.playIntegrity,
+    appleProvider: AppleProvider.deviceCheck,
   );
 
   MobileAds.instance.initialize();

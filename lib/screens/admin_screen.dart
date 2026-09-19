@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:provider/provider.dart';
-import '../config/app_config.dart';
 import '../models/fixture_model.dart';
 import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
@@ -19,78 +18,65 @@ class _AdminScreenState extends State<AdminScreen> {
   final FixtureService _fixtureService = FixtureService();
   final LeagueService _leagueService = LeagueService();
 
-  bool _unlocked = false;
+  bool _isAdmin = false;
+  bool _checkingAdmin = true;
   bool _resetting = false;
   bool _syncing = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _promptPin());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAdmin());
   }
 
-  Future<void> _promptPin() async {
-    final controller = TextEditingController();
-    final entered = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Admin PIN',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          autofocus: true,
-          keyboardType: TextInputType.number,
-          style: const TextStyle(color: Colors.white, fontSize: 20, letterSpacing: 8),
-          textAlign: TextAlign.center,
-          decoration: const InputDecoration(
-            hintText: '● ● ● ●',
-            hintStyle: TextStyle(color: Colors.white24, letterSpacing: 4),
-            enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white24)),
-            focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Color(0xFF4CAF50))),
+  Future<void> _checkAdmin() async {
+    setState(() => _checkingAdmin = true);
+    try {
+      final result = await FirebaseFunctions.instance.httpsCallable('checkAdmin')();
+      setState(() => _isAdmin = result.data['isAdmin'] as bool? ?? false);
+      if (!_isAdmin && mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Admin access required'),
+            backgroundColor: Colors.red,
           ),
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-            LengthLimitingTextInputFormatter(4),
-          ],
-          onSubmitted: (v) => Navigator.pop(ctx, v),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, null),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white38)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50)),
-            onPressed: () => Navigator.pop(ctx, controller.text),
-            child: const Text('Enter'),
-          ),
-        ],
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (entered == AppConfig.adminPin) {
-      setState(() => _unlocked = true);
-    } else {
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Wrong PIN'),
+        SnackBar(
+          content: Text('Admin check failed: $e'),
           backgroundColor: Colors.red,
         ),
       );
+    } finally {
+      if (mounted) setState(() => _checkingAdmin = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingAdmin) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F0F1A),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+        ),
+      );
+    }
+
+    if (!_isAdmin) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF0F0F1A),
+        body: Center(
+          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
       appBar: AppBar(
@@ -103,7 +89,7 @@ class _AdminScreenState extends State<AdminScreen> {
                 fontWeight: FontWeight.bold,
                 fontSize: 17)),
         actions: [
-          if (_unlocked)
+          if (_isAdmin)
             IconButton(
               icon: _syncing
                   ? const SizedBox(
@@ -120,7 +106,7 @@ class _AdminScreenState extends State<AdminScreen> {
             ),
         ],
       ),
-      body: _unlocked
+      body: _isAdmin
           ? Column(
               children: [
                 Expanded(
