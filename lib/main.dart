@@ -10,6 +10,7 @@ import 'providers/prediction_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'screens/auth_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'screens/home_screen.dart';
 
 void main() async {
@@ -97,6 +98,10 @@ class _AuthWrapper extends StatelessWidget {
       );
     }
 
-    return auth.userModel != null ? const HomeScreen() : const AuthScreen();
+    return auth.userModel != null
+        ? (auth.isEmailVerified
+            ? const HomeScreen()
+            : const VerifyEmailScreen())
+        : const AuthScreen();
   }
 }
