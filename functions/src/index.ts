@@ -139,11 +139,17 @@ export const syncFixtures = functions.https.onCall(async (data, context) => {
     for (const raw of liveFinished.matches || []) {
       const fixture = parseFixture(raw);
       const docRef = db.collection('fixtures').doc(fixture.fixtureId);
-      batch.update(docRef, {
+      // Use set+merge instead of update to handle non-existent docs
+      batch.set(docRef, {
+        fixtureId: fixture.fixtureId,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        kickoff: fixture.kickoff,
+        competition: fixture.competition,
         status: fixture.status,
         homeScore: fixture.homeScore,
         awayScore: fixture.awayScore,
-      });
+      }, { merge: true });
       updatedLiveFinished++;
     }
 
@@ -176,6 +182,27 @@ export const checkAdmin = functions.https.onCall(
       .get();
 
     return { isAdmin: adminDoc.exists && adminDoc.data()?.isAdmin === true };
+  }
+);
+
+// ── Callable: setPremium ────────────────────────────────────────────────────────
+// Server-side write for isPremium (prevents client spoofing).
+
+export const setPremium = functions.https.onCall(
+  async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Sign in required'
+      );
+    }
+
+    const userId: string = data.userId;
+    const isPremium: boolean = data.isPremium;
+
+    await db.collection('users').doc(userId).update({ isPremium });
+
+    return { success: true };
   }
 );
 
