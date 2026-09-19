@@ -187,6 +187,7 @@ export const checkAdmin = functions.https.onCall(
 
 // ── Callable: setPremium ────────────────────────────────────────────────────────
 // Server-side write for isPremium (prevents client spoofing).
+// Only ever sets isPremium: true — revocation must happen server-side.
 
 export const setPremium = functions.https.onCall(
   async (data, context) => {
@@ -197,10 +198,13 @@ export const setPremium = functions.https.onCall(
       );
     }
 
-    const userId: string = data.userId;
-    const isPremium: boolean = data.isPremium;
+    // Use context.auth.uid — never trust client-supplied userId
+    const userId = context.auth.uid;
 
-    await db.collection('users').doc(userId).update({ isPremium });
+    await db.collection('users').doc(userId).set(
+      { isPremium: true },
+      { merge: true }
+    );
 
     return { success: true };
   }
@@ -299,15 +303,21 @@ export const scoreFixtureResults = functions.https.onCall(
       }
     }
 
-    // -1 for users who didn't predict
+    // -1 for users who didn't predict (chunked to respect 500-write batch limit)
     const usersSnap = await db.collection('users').get();
-    for (const userDoc of usersSnap.docs) {
-      if (!predictedUids.has(userDoc.id)) {
-        batch.update(userDoc.reference, {
-          totalPoints: admin.firestore.FieldValue.increment(-1),
-          weeklyPoints: admin.firestore.FieldValue.increment(-1),
-        });
+    for (let i = 0; i < usersSnap.docs.length; i += 500) {
+      const batch2 = db.batch();
+      const end = Math.min(i + 500, usersSnap.docs.length);
+      for (let j = i; j < end; j++) {
+        const userDoc = usersSnap.docs[j];
+        if (!predictedUids.has(userDoc.id)) {
+          batch2.update(userDoc.reference, {
+            totalPoints: admin.firestore.FieldValue.increment(-1),
+            weeklyPoints: admin.firestore.FieldValue.increment(-1),
+          });
+        }
       }
+      await batch2.commit();
     }
 
     await batch.commit();

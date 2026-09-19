@@ -51,34 +51,41 @@ class HomeScreen extends StatelessWidget {
                 if (confirmed && context.mounted) await auth.signOut();
               }
             },
-            itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: 'admin',
-                child: Row(children: [
-                  Icon(Icons.admin_panel_settings_outlined,
-                      color: Colors.white54, size: 18),
-                  SizedBox(width: 10),
-                  Text('Admin', style: TextStyle(color: Colors.white70)),
-                ]),
-              ),
-              const PopupMenuItem(
-                value: 'premium',
-                child: Row(children: [
-                  Icon(Icons.star_outline,
-                      color: Colors.white54, size: 18),
-                  SizedBox(width: 10),
-                  Text('Go Premium', style: TextStyle(color: Colors.white70)),
-                ]),
-              ),
-              const PopupMenuItem(
-                value: 'signout',
-                child: Row(children: [
-                  Icon(Icons.logout, color: Colors.white54, size: 18),
-                  SizedBox(width: 10),
-                  Text('Sign out', style: TextStyle(color: Colors.white70)),
-                ]),
-              ),
-            ],
+            itemBuilder: (_) {
+              final items = <PopupMenuEntry<String>>[];
+              if (auth.isAdmin) {
+                items.add(
+                  const PopupMenuItem(
+                    value: 'admin',
+                    child: Row(children: [
+                      Icon(Icons.admin_panel_settings_outlined,
+                          color: Colors.white54, size: 18),
+                      SizedBox(width: 10),
+                      Text('Admin', style: TextStyle(color: Colors.white70)),
+                    ]),
+                  ),
+                );
+              }
+              items.addAll([
+                const PopupMenuItem(
+                  value: 'premium',
+                  child: Row(children: [
+                    Icon(Icons.star_outline, color: Colors.white54, size: 18),
+                    SizedBox(width: 10),
+                    Text('Go Premium', style: TextStyle(color: Colors.white70)),
+                  ]),
+                ),
+                const PopupMenuItem(
+                  value: 'signout',
+                  child: Row(children: [
+                    Icon(Icons.logout, color: Colors.white54, size: 18),
+                    SizedBox(width: 10),
+                    Text('Sign out', style: TextStyle(color: Colors.white70)),
+                  ]),
+                ),
+              ]);
+              return items;
+            },
           ),
         ],
       ),
