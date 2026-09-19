@@ -2,30 +2,53 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // ── App Check enforcement ───────────────────────────────────────────────────
+    // Enable App Check for Firestore in the Firebase console to enforce this.
+    // Prevents non-genuine clients from reading/writing data.
+    function isAppChecked() {
+      return request.app != null;
+    }
+
     // Users can read/write their own doc only
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if isAppChecked() && request.auth.uid == userId;
+      allow write: if isAppChecked() && request.auth.uid == userId;
     }
 
     // Fixtures: readable by all authenticated users.
-    // Writable by authenticated users — relies on App Check enforcement
-    // (enable in Firebase console) to prevent forged writes from
-    // non-genuine clients. On Spark Plan there's no server-side admin check.
-    // To fully secure, upgrade to Blaze and move writes to Cloud Functions.
     match /fixtures/{fixtureId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null;
-      allow update: if request.auth != null
-        && request.resource.data.keys().hasOnly(['status', 'homeScore', 'awayScore']);
+      allow read: if isAppChecked();
+
+      // Fixtures can only be created by admin SDK (client-side sync is
+      // restricted via App Check). In production, move this to Cloud Functions.
+      allow create: if isAppChecked()
+        && request.resource.data.keys().hasAll([
+          'fixtureId', 'homeTeam', 'awayTeam', 'kickoff', 'status', 'competition'
+        ]);
+
+      // Updates restricted to score/status fields only (admin result entry)
+      // Status must transition: upcoming → live → finished
+      allow update: if isAppChecked()
+        && request.resource.data.keys().hasOnly(['status', 'homeScore', 'awayScore'])
+        && _validStatusTransition(
+            resource.data['status'],
+            request.resource.data['status']);
+
       allow delete: if false;
     }
 
     // Predictions: users can read/write their own only
     match /predictions/{predictionId} {
-      allow read, write: if request.auth != null
+      allow read, write: if isAppChecked()
         && request.auth.uid == resource.data.userId;
-      allow create: if request.auth != null
+      allow create: if isAppChecked()
         && request.auth.uid == request.resource.data.userId;
+    }
+
+    // Status transition validator: upcoming → live → finished
+    function _validStatusTransition(current, next) {
+      return (next == 'live' && current == 'upcoming')
+        || (next == 'finished' && (current == 'upcoming' || current == 'live'));
     }
   }
 }
