@@ -73,16 +73,15 @@ class SubscriptionService extends ChangeNotifier {
     }
   }
 
-  Future<void> _savePremiumToFirestore(String userId, bool premium) async {
+  Future<void> _savePremiumToFirestore(String userId) async {
     try {
-      await FirebaseFunctions.instance.httpsCallable('setPremium')({
-        'userId': userId,
-        'isPremium': premium,
-      });
+      // setPremium uses context.auth.uid server-side — userId param
+      // is for the current authenticated user only
+      await FirebaseFunctions.instance.httpsCallable('setPremium')();
     } catch (e) {
       // Cloud Function call failed (offline or rules) — cache in memory only
     }
-    _isPremium = premium;
+    _isPremium = true;
     notifyListeners();
   }
 
@@ -110,7 +109,7 @@ class SubscriptionService extends ChangeNotifier {
       if (purchase.status == PurchaseStatus.purchased) {
         _purchased.add(purchase.productID);
         InAppPurchase.instance.completePurchase(purchase);
-        _savePremiumToFirestore(userId, true);
+        _savePremiumToFirestore(userId);
       } else if (purchase.status == PurchaseStatus.error) {
         _error = purchase.error.toString();
         notifyListeners();
