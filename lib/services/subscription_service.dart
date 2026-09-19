@@ -26,6 +26,10 @@ class SubscriptionService extends ChangeNotifier {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<void> init(String? userId) async {
+    // Cancel any existing subscription to prevent memory leaks
+    _subscription?.cancel();
+    _subscription = null;
+
     if (userId == null) {
       _isPremium = false;
       notifyListeners();

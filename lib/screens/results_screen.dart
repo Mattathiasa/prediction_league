@@ -41,9 +41,11 @@ class ResultsScreen extends StatelessWidget {
           // Watch predictions — already loaded by PredictionProvider stream
           final predProvider = context.watch<PredictionProvider>();
 
-          // Compute a quick summary from loaded prediction data
+          // Compute a quick summary from predictions for the visible fixtures only
+          final visibleFixtureIds = fixtures.map((f) => f.fixtureId).toSet();
           final scored = predProvider.predictions.values
-              .where((p) => p.locked)
+              .where((p) =>
+                  p.locked && visibleFixtureIds.contains(p.fixtureId))
               .toList();
           final totalEarned =
               scored.fold<int>(0, (sum, p) => sum + p.pointsEarned);

@@ -311,24 +311,35 @@ Wrong result → 0 pts
 
 A fixture's prediction window closes **1 hour before kickoff**. The `FixtureModel.isLocked` property checks this on the client. The `PredictScreen` shows a live countdown until lock. Once locked, predictions are read-only.
 
-### Cloud Functions
+### Deployment Checklist
 
-Located in `functions/src/index.ts`:
+Before releasing, complete these steps:
 
-| Function | Type | Trigger | Description |
-|---|---|---|---|
-| `syncFixtures` | Callable (`https.onCall`) | Admin client call | Fetches upcoming PL fixtures from football-data.org (server-side), batch-writes to Firestore |
-| `scoreFixtureResults` | Callable (`https.onCall`) | Admin client call | Scores all predictions for a fixture atomically (with idempotency guard) |
-| `updateFixtureStatus` | Scheduled (`pubsub.schedule`) | Every 10 min (match hours) | Updates live/finished fixture statuses and scores |
-| `resetWeeklyPoints` | Scheduled (`pubsub.schedule`) | Every Monday 07:00 UTC | Resets all users' weeklyPoints to 0 |
-| `checkAdmin` | Callable (`https.onCall`) | Any authenticated user | Verifies admin access via `admin_roles` collection |
+1. **Deploy Cloud Functions**
+   ```bash
+   firebase deploy --only functions
+   ```
+   This activates `syncFixtures`, `scoreFixtureResults`, `checkAdmin`, and `setPremium` callables, plus scheduled functions.
 
-```bash
-cd functions
-npm run build     # Compile TypeScript
-npm run serve     # Start emulator for Functions
-npm run deploy    # Deploy Functions only
-```
+2. **Set the football-data.org API key**
+   ```bash
+   cd functions
+   firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
+   firebase deploy --only functions
+   ```
+
+3. **Create an admin role**
+   In the Firebase console → Firestore → `admin_roles` collection, create a document with your Firebase UID as the document ID:
+   ```
+   admin_roles/{yourUid} → { isAdmin: true }
+   ```
+
+4. **Enable App Check enforcement**
+   In the Firebase console → App Check → Firestore → toggle **Enforce** to ON.
+   Without this, Firestore rules that check `request.app != null` will not be enforced.
+
+5. **Configure AdMob**
+   Replace the test AdMob app ID in `main.dart` and the banner ad unit ID in `lib/widgets/banner_ad_widget.dart` with your production IDs from the AdMob console.
 
 ---
 

@@ -55,30 +55,34 @@ class LeagueService {
     }
 
     final doc = snap.docs.first;
-    final league = LeagueModel.fromFirestore(doc.data(), doc.id);
 
-    if (league.memberIds.contains(userId)) {
-      throw Exception('You are already a member of "${league.name}".');
-    }
+    // Use transaction to prevent race condition on member cap check
+    return _db.runTransaction((tx) async {
+      final leagueDoc = await tx.get(doc.reference);
+      final league = LeagueModel.fromFirestore(leagueDoc.data()!, leagueDoc.id);
 
-    if (league.memberIds.length >= maxLeagueMembers) {
-      throw Exception(
-          'This league is full (${league.memberIds.length}/$maxLeagueMembers members). '
-          'Ask the admin to create a new league.');
-    }
+      if (league.memberIds.contains(userId)) {
+        throw Exception('You are already a member of "${league.name}".');
+      }
 
-    await doc.reference.update({
-      'memberIds': FieldValue.arrayUnion([userId]),
+      if (league.memberIds.length >= maxLeagueMembers) {
+        throw Exception(
+            'This league is full (${league.memberIds.length}/$maxLeagueMembers members).');
+      }
+
+      tx.update(doc.reference, {
+        'memberIds': FieldValue.arrayUnion([userId]),
+      });
+
+      return LeagueModel(
+        leagueId: league.leagueId,
+        name: league.name,
+        adminId: league.adminId,
+        memberIds: [...league.memberIds, userId],
+        inviteCode: league.inviteCode,
+        createdAt: league.createdAt,
+      );
     });
-
-    return LeagueModel(
-      leagueId: league.leagueId,
-      name: league.name,
-      adminId: league.adminId,
-      memberIds: [...league.memberIds, userId],
-      inviteCode: league.inviteCode,
-      createdAt: league.createdAt,
-    );
   }
 
   // ── Streams ────────────────────────────────────────────────────────────────

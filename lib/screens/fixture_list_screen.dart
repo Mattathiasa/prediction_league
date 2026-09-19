@@ -4,6 +4,7 @@ import '../models/fixture_model.dart';
 import '../models/prediction_model.dart';
 import '../providers/fixture_provider.dart';
 import '../providers/prediction_provider.dart';
+import '../services/auth_service.dart';
 import 'predict_screen.dart';
 
 class FixtureListScreen extends StatefulWidget {
@@ -17,9 +18,11 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
   @override
   void initState() {
     super.initState();
-    // Sync from football-data.org on first open
+    // Sync from football-data.org on first open — only for admins
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<FixtureProvider>().syncFixtures();
+      if (context.read<AuthService>().isAdmin) {
+        context.read<FixtureProvider>().syncFixtures();
+      }
     });
   }
 
@@ -51,11 +54,12 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
               ),
             )
           else
-            IconButton(
-              icon: const Icon(Icons.sync, color: Colors.white70),
-              tooltip: 'Refresh from API',
-              onPressed: () => fixtureProvider.syncFixtures(),
-            ),
+            if (context.read<AuthService>().isAdmin)
+              IconButton(
+                icon: const Icon(Icons.sync, color: Colors.white70),
+                tooltip: 'Refresh from API',
+                onPressed: () => fixtureProvider.syncFixtures(),
+              ),
         ],
       ),
       body: Column(
