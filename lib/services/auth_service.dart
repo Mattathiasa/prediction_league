@@ -12,10 +12,15 @@ class AuthService extends ChangeNotifier {
   UserModel? _userModel;
   bool _initialized = false;
   bool _isLoading = false;
+  String? _error;
 
   UserModel? get userModel => _userModel;
   bool get initialized => _initialized;
   bool get isLoading => _isLoading;
+  String? get error => _error;
+  bool get isEmailVerified => _firebaseUser?.emailVerified ?? false;
+
+  User? get _firebaseUser => _auth.currentUser;
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
@@ -25,7 +30,12 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _handleAuthChange(User? firebaseUser) async {
     if (firebaseUser != null) {
-      await _fetchUserModel(firebaseUser.uid);
+      await firebaseUser.reload();
+      if (firebaseUser.emailVerified) {
+        await _fetchUserModel(firebaseUser.uid);
+      } else {
+        _userModel = null;
+      }
     } else {
       _userModel = null;
     }
@@ -42,12 +52,12 @@ class AuthService extends ChangeNotifier {
 
   Future<void> signInWithGoogle() async {
     _isLoading = true;
+    _error = null;
     notifyListeners();
 
     try {
       final googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
-        // user cancelled the picker
         _isLoading = false;
         notifyListeners();
         return;
@@ -62,8 +72,15 @@ class AuthService extends ChangeNotifier {
       final userCredential = await _auth.signInWithCredential(credential);
       final firebaseUser = userCredential.user!;
 
+      if (!firebaseUser.emailVerified) {
+        await firebaseUser.sendEmailVerification();
+      }
+
       await _createUserIfNew(firebaseUser);
       await _fetchUserModel(firebaseUser.uid);
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
