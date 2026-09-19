@@ -1,80 +1,56 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../config/app_config.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/fixture_model.dart';
 
 class FixtureService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  // Fetch from football-data.org, batch-write to Firestore, return the list.
-  // Returns only upcoming fixtures so the caller can schedule notifications.
+  // ── Cloud Functions (secure API key, admin-only) ────────────────────────────
+
+  /// Calls the `syncFixtures` Cloud Function (admin-only).
+  /// Fetches upcoming fixtures from football-data.org (server-side),
+  /// batch-writes to Firestore, and returns the upcoming fixtures list.
   Future<List<FixtureModel>> syncFixtures() async {
-    final response = await http.get(
-      Uri.parse(AppConfig.scheduledMatches),
-      headers: AppConfig.apiHeaders,
-    );
+    final HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('syncFixtures');
+    await callable();
 
-    if (response.statusCode != 200) {
-      throw Exception(
-          'football-data.org error ${response.statusCode}: ${response.body}');
-    }
+    // After sync, read upcoming fixtures from Firestore
+    final snap = await _db
+        .collection('fixtures')
+        .where('status', isEqualTo: 'upcoming')
+        .orderBy('kickoff')
+        .limit(20)
+        .get();
 
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final matches = body['matches'] as List<dynamic>;
-
-    if (matches.isEmpty) return [];
-
-    final fixtures = matches
-        .map((raw) => FixtureModel.fromApi(raw as Map<String, dynamic>))
+    return snap.docs
+        .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
         .toList();
-
-    final batch = _db.batch();
-    for (final fixture in fixtures) {
-      batch.set(
-        _db.collection('fixtures').doc(fixture.fixtureId),
-        fixture.toMap(),
-        SetOptions(merge: true),
-      );
-    }
-    await batch.commit();
-
-    return fixtures.where((f) => f.isUpcoming).toList();
   }
 
-  // Fetch live and finished matches to update fixtures already in Firestore
-  // with current scores and statuses.
-  Future<int> syncLiveAndFinished() async {
-    final response = await http.get(
-      Uri.parse(AppConfig.liveAndFinishedMatches),
-      headers: AppConfig.apiHeaders,
-    );
-
-    if (response.statusCode != 200) {
-      throw Exception(
-          'football-data.org error ${response.statusCode}: ${response.body}');
-    }
-
-    final body = jsonDecode(response.body) as Map<String, dynamic>;
-    final matches = body['matches'] as List<dynamic>;
-
-    if (matches.isEmpty) return 0;
-
-    final batch = _db.batch();
-    for (final raw in matches) {
-      final fixture = FixtureModel.fromApi(raw as Map<String, dynamic>);
-      batch.update(
-        _db.collection('fixtures').doc(fixture.fixtureId),
-        {
-          'status': fixture.status,
-          if (fixture.homeScore != null) 'homeScore': fixture.homeScore,
-          if (fixture.awayScore != null) 'awayScore': fixture.awayScore,
-        },
-      );
-    }
-    await batch.commit();
-    return matches.length;
+  /// Calls `scoreFixtureResults` Cloud Function (admin-only).
+  /// Batch-scores all predictions and updates user stats atomically.
+  Future<int?> scoreFixtureResults({
+    required String fixtureId,
+    required int homeScore,
+    required int awayScore,
+    String? currentUserId,
+  }) async {
+    final HttpsCallable callable =
+        FirebaseFunctions.instance.httpsCallable('scoreFixtureResults');
+    final result = await callable({
+      'fixtureId': fixtureId,
+      'homeScore': homeScore,
+      'awayScore': awayScore,
+      'currentUserId': currentUserId,
+    });
+    final pts = result.data['pointsEarned'] as int?;
+    return pts;
   }
+
+  // Live/finished fixture updates are handled by the scheduled Cloud Function
+  // `updateFixtureStatus` (runs every 10 minutes during match hours).
+  // No client-side API call needed — the Firestore stream updates automatically.
 
   // Real-time stream from Firestore — no API call needed.
   Stream<List<FixtureModel>> upcomingFixtures() {

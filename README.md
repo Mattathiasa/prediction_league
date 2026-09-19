@@ -60,11 +60,12 @@ Built with Flutter, Firebase (Auth, Firestore, Cloud Messaging), and the [footba
 |-------|-----------|
 | Framework | Flutter (stable channel) |
 | State Management | `provider` package (ChangeNotifier / ChangeNotifierProxyProvider) |
-| Backend | Firebase (Auth, Firestore, Cloud Messaging) |
+| Backend | Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging) |
 | External API | football-data.org (Premier League fixtures & results) |
 | Local Notifications | `flutter_local_notifications` + `timezone` |
 | Image Caching | `cached_network_image` |
 | Sharing | `share_plus` |
+| Monetization | `google_mobile_ads`, `in_app_purchase` |
 
 ### App Icon & Splash
 
@@ -87,7 +88,8 @@ prediction_league/
 │   ├── services/
 │   │   ├── auth_service.dart       # Google Sign-In + Firestore user mgmt
 │   │   ├── badge_service.dart      # Badge definitions + awarding logic
-│   │   ├── fixture_service.dart    # Firestore streams + client-side fixture fetch
+│   │   ├── fixture_service.dart    # Firestore streams + Cloud Functions sync
+│   │   │                                        # (syncFixtures, scoreFixtureResults)
 │   │   ├── league_service.dart     # League CRUD, invite codes, member mgmt
 │   │   ├── notification_service.dart # Match reminders + result notifications
 │   │   ├── prediction_service.dart # Submit predictions (with lock check)
