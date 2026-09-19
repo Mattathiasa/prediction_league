@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'firebase_options.dart';
@@ -9,6 +10,7 @@ import 'providers/league_provider.dart';
 import 'providers/prediction_provider.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
+import 'services/subscription_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'screens/home_screen.dart';
@@ -26,6 +28,8 @@ void main() async {
     appleProvider: AppleProvider.debug,
   );
 
+  MobileAds.instance.initialize();
+
   await NotificationService.initialize();
   await NotificationService.requestPermission();
 
@@ -40,6 +44,7 @@ class PredictionLeagueApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
+        ChangeNotifierProvider(create: (_) => SubscriptionService()),
         ChangeNotifierProvider(create: (_) => FixtureProvider()),
         ChangeNotifierProxyProvider<AuthService, PredictionProvider>(
           create: (_) => PredictionProvider(),
