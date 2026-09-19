@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../services/auth_service.dart';
+import '../services/subscription_service.dart';
 import '../models/user_model.dart';
+import '../widgets/banner_ad_widget.dart';
 import 'admin_screen.dart';
 import 'fixture_list_screen.dart';
 import 'history_screen.dart';
 import 'leaderboard_screen.dart';
 import 'my_league_screen.dart';
+import 'paywall_screen.dart';
 import 'profile_screen.dart';
 import 'results_screen.dart';
 
@@ -40,6 +43,9 @@ class HomeScreen extends StatelessWidget {
               if (value == 'admin') {
                 Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const AdminScreen()));
+              } else if (value == 'premium') {
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const PaywallScreen()));
               } else if (value == 'signout') {
                 final confirmed = await _confirmSignOut(context);
                 if (confirmed && context.mounted) await auth.signOut();
@@ -53,6 +59,15 @@ class HomeScreen extends StatelessWidget {
                       color: Colors.white54, size: 18),
                   SizedBox(width: 10),
                   Text('Admin', style: TextStyle(color: Colors.white70)),
+                ]),
+              ),
+              const PopupMenuItem(
+                value: 'premium',
+                child: Row(children: [
+                  Icon(Icons.star_outline,
+                      color: Colors.white54, size: 18),
+                  SizedBox(width: 10),
+                  Text('Go Premium', style: TextStyle(color: Colors.white70)),
                 ]),
               ),
               const PopupMenuItem(
@@ -96,6 +111,12 @@ class HomeScreen extends StatelessWidget {
             _MyLeagueNavCard(),
             const SizedBox(height: 12),
             _ProfileNavCard(),
+            const SizedBox(height: 12),
+            Consumer<SubscriptionService>(
+              builder: (context, sub, _) => ConditionalBannerAd(
+                isPremium: sub.isPremium,
+              ),
+            ),
           ],
         ),
       ),
