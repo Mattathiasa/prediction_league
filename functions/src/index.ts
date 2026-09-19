@@ -303,18 +303,26 @@ export const scoreFixtureResults = functions.https.onCall(
       }
     }
 
-    // -1 for users who didn't predict (chunked to respect 500-write batch limit)
+    // -1 for users who didn't predict AND signed up before kickoff
+    // (new users after kickoff shouldn't get penalized)
     const usersSnap = await db.collection('users').get();
+    const fixtureKickoff = fixtureData.kickoff.toDate();
     for (let i = 0; i < usersSnap.docs.length; i += 500) {
       const batch2 = db.batch();
       const end = Math.min(i + 500, usersSnap.docs.length);
       for (let j = i; j < end; j++) {
         const userDoc = usersSnap.docs[j];
         if (!predictedUids.has(userDoc.id)) {
-          batch2.update(userDoc.reference, {
-            totalPoints: admin.firestore.FieldValue.increment(-1),
-            weeklyPoints: admin.firestore.FieldValue.increment(-1),
-          });
+          // Check if user was created before this fixture's kickoff
+          const userData = userDoc.data();
+          // Users without an explicit createdAt are old users — apply penalty
+          const userCreatedAt = userData.createdAt?.toDate();
+          if (!userCreatedAt || userCreatedAt.isBefore(fixtureKickoff)) {
+            batch2.update(userDoc.reference, {
+              totalPoints: admin.firestore.FieldValue.increment(-1),
+              weeklyPoints: admin.firestore.FieldValue.increment(-1),
+            });
+          }
         }
       }
       await batch2.commit();
