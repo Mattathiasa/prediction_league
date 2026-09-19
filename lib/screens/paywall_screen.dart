@@ -71,30 +71,32 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   const _FeatureCard(
                     icon: Icons.bar_chart_rounded,
                     title: 'Ad-Free Experience',
-                    description: 'No banners or interstitial ads anywhere '
-                        'in the app',
+                    description: 'No banner ads on the home screen '
+                        'and main pages',
                     color: Color(0xFF29B6F6),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.emoji_events_rounded,
                     title: 'Premium Badge',
-                    description: 'Special badge on leaderboards and profile',
+                    description: 'Special badge on your profile '
+                        'and leaderboard entries',
                     color: Color(0xFF4CAF50),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.history_rounded,
-                    title: 'Priority Sync',
-                    description: 'Server-side fixture syncing and '
-                        'priority support',
+                    title: 'Cloud Sync',
+                    description: 'Server-side fixture syncing via '
+                        'Cloud Functions',
                     color: Color(0xFFFFD700),
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
                     icon: Icons.block,
-                    title: 'Early Access',
-                    description: 'Test new features before public release',
+                    title: 'No Ads',
+                    description: 'Completely ad-free experience '
+                        'across all screens',
                     color: Color(0xFF9C27B0),
                   ),
                   const SizedBox(height: 32),

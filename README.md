@@ -78,39 +78,42 @@ prediction_league/
 ├── android/                        # Android native config
 ├── ios/                            # iOS native config (Flutter + Podfile)
 ├── lib/
-│   ├── config/
-│   │   └── app_config.dart         # Admin PIN, API config (client-side)
 │   ├── models/
-│   │   ├── fixture_model.dart      # Fixture data model (API + Firestore)
+│   │   ├── fixture_model.dart      # Fixture data model (Firestore)
 │   │   ├── league_model.dart       # League data model
+│   │   ├── matchup_model.dart      # League head-to-head matchup model
 │   │   ├── prediction_model.dart   # Prediction data model (with copyWith)
-│   │   └── user_model.dart         # User data model (stats, badges, streaks)
+│   │   └── user_model.dart         # User data model (stats, badges, isPremium)
 │   ├── services/
-│   │   ├── auth_service.dart       # Google Sign-In + Firestore user mgmt
+│   │   ├── auth_service.dart       # Google Sign-In + email verification
 │   │   ├── badge_service.dart      # Badge definitions + awarding logic
 │   │   ├── fixture_service.dart    # Firestore streams + Cloud Functions sync
-│   │   │                                        # (syncFixtures, scoreFixtureResults)
-│   │   ├── league_service.dart     # League CRUD, invite codes, member mgmt
-│   │   ├── notification_service.dart # Match reminders + result notifications
+│   │   ├── league_service.dart     # League CRUD, invite codes, member mgmt (20 cap)
+│   │   ├── notification_service.dart # Match reminders + result notifications (Android + iOS)
 │   │   ├── prediction_service.dart # Submit predictions (with lock check)
-│   │   ├── result_service.dart       # Batch scoring of predictions
-│   │   └── scoring_service.dart      # Pure scoring logic (5/3/1/0 points)
+│   │   ├── scoring_service.dart    # Pure scoring logic (5/3/1/0 points)
+│   │   └── subscription_service.dart # IAP + premium state (Firestore-backed)
 │   ├── providers/
 │   │   ├── fixture_provider.dart   # Sync fixtures + schedule reminders
 │   │   ├── league_provider.dart    # League streams + create/join
 │   │   └── prediction_provider.dart # Prediction CRUD + optimistic updates
 │   ├── screens/
-│   │   ├── admin_screen.dart       # PIN-gated result entry
+│   │   ├── admin_screen.dart       # Server-side admin auth (checkAdmin callable)
 │   │   ├── auth_screen.dart        # Google Sign-In screen
 │   │   ├── create_league_screen.dart
 │   │   ├── fixture_list_screen.dart # Upcoming fixtures + sync
-│   │   ├── home_screen.dart        # Dashboard (stats, quick nav)
+│   │   ├── history_screen.dart     # Prediction history
+│   │   ├── home_screen.dart        # Dashboard (stats, quick nav, ads)
 │   │   ├── join_league_screen.dart
 │   │   ├── leaderboard_screen.dart # All-time + weekly tabs
-│   │   ├── my_league_screen.dart   # League standings + picker
+│   │   ├── my_league_screen.dart   # League standings + matchups
+│   │   ├── paywall_screen.dart     # Premium subscription UI
 │   │   ├── predict_screen.dart     # Score entry with countdown timer
 │   │   ├── profile_screen.dart     # Stats + badges
-│   │   └── results_screen.dart     # Finished matches + points summary
+│   │   ├── results_screen.dart     # Finished matches + points summary
+│   │   └── verify_email_screen.dart # Email verification gate
+│   ├── widgets/
+│   │   └── banner_ad_widget.dart   # Conditional AdMob banner (premium = no ads)
 │   ├── firebase_options.dart       # Firebase config (generated, not committed)
 │   └── main.dart                   # App entry + MultiProvider setup
 ├── functions/

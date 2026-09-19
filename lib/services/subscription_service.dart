@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SubscriptionService extends ChangeNotifier {
@@ -74,11 +75,12 @@ class SubscriptionService extends ChangeNotifier {
 
   Future<void> _savePremiumToFirestore(String userId, bool premium) async {
     try {
-      await _db.collection('users').doc(userId).update({
+      await FirebaseFunctions.instance.httpsCallable('setPremium')({
+        'userId': userId,
         'isPremium': premium,
       });
     } catch (e) {
-      // Firestore write failed (offline or rules) — cache in memory only
+      // Cloud Function call failed (offline or rules) — cache in memory only
     }
     _isPremium = premium;
     notifyListeners();
