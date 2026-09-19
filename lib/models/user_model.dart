@@ -12,6 +12,7 @@ class UserModel {
   final int predictionsCount;
   final int correctResults;
   final int exactScoreCount;
+  final bool isPremium;
 
   const UserModel({
     required this.uid,
@@ -27,6 +28,7 @@ class UserModel {
     this.predictionsCount = 0,
     this.correctResults = 0,
     this.exactScoreCount = 0,
+    this.isPremium = false,
   });
 
   factory UserModel.fromFirestore(Map<String, dynamic> data, String uid) {
@@ -44,6 +46,7 @@ class UserModel {
       predictionsCount: data['predictionsCount'] as int? ?? 0,
       correctResults: data['correctResults'] as int? ?? 0,
       exactScoreCount: data['exactScoreCount'] as int? ?? 0,
+      isPremium: data['isPremium'] as bool? ?? false,
     );
   }
 
@@ -59,8 +62,9 @@ class UserModel {
           'badgeIds': badgeIds,
           'highestWeeklyPoints': highestWeeklyPoints,
           'predictionsCount': predictionsCount,
-          'correctResults': correctResults,
-          'exactScoreCount': exactScoreCount,
+      'correctResults': correctResults,
+      'exactScoreCount': exactScoreCount,
+      'isPremium': isPremium,
         };
 
   UserModel copyWith({
@@ -76,6 +80,7 @@ class UserModel {
     int? predictionsCount,
     int? correctResults,
     int? exactScoreCount,
+    bool? isPremium,
   }) {
     return UserModel(
       uid: uid,
@@ -91,6 +96,7 @@ class UserModel {
       predictionsCount: predictionsCount ?? this.predictionsCount,
       correctResults: correctResults ?? this.correctResults,
       exactScoreCount: exactScoreCount ?? this.exactScoreCount,
+      isPremium: isPremium ?? this.isPremium,
     );
   }
 }

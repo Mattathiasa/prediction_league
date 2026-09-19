@@ -44,7 +44,6 @@ class PredictionLeagueApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
-        ChangeNotifierProvider(create: (_) => SubscriptionService()),
         ChangeNotifierProvider(create: (_) => FixtureProvider()),
         ChangeNotifierProxyProvider<AuthService, PredictionProvider>(
           create: (_) => PredictionProvider(),
@@ -66,6 +65,18 @@ class PredictionLeagueApp extends StatelessWidget {
               provider.startListening(auth.userModel!.uid);
             } else {
               provider.stopListening();
+            }
+            return provider;
+          },
+        ),
+        ChangeNotifierProxyProvider<AuthService, SubscriptionService>(
+          create: (_) => SubscriptionService(),
+          update: (_, auth, prev) {
+            final provider = prev ?? SubscriptionService();
+            if (auth.isEmailVerified && auth.userModel != null) {
+              provider.init(auth.userModel!.uid);
+            } else if (auth.userModel == null) {
+              provider.reset();
             }
             return provider;
           },
