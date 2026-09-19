@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
 
 class PaywallScreen extends StatefulWidget {
@@ -15,13 +16,17 @@ class _PaywallScreenState extends State<PaywallScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SubscriptionService>().init();
+      final userId =
+          context.read<AuthService>().userModel?.uid;
+      final sub = context.read<SubscriptionService>();
+      if (userId != null) sub.init(userId);
     });
   }
 
   @override
   Widget build(BuildContext context) {
     final sub = context.watch<SubscriptionService>();
+    final auth = context.watch<AuthService>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F0F1A),
@@ -98,9 +103,11 @@ class _PaywallScreenState extends State<PaywallScreen> {
                   ...sub.products.map((product) => _ProductButton(
                         product: product,
                         service: sub,
+                        userId: auth.userModel?.uid ?? '',
                       )),
                   TextButton(
-                    onPressed: sub.restorePurchases,
+                    onPressed: () =>
+                        sub.restorePurchases(userId: auth.userModel?.uid),
                     child: const Text(
                       'Restore Purchases',
                       style: TextStyle(color: Colors.white54),
@@ -172,8 +179,9 @@ class _FeatureCard extends StatelessWidget {
 class _ProductButton extends StatelessWidget {
   final ProductDetails product;
   final SubscriptionService service;
+  final String userId;
 
-  const _ProductButton({required this.product, required this.service});
+  const _ProductButton({required this.product, required this.service, required this.userId});
 
   @override
   Widget build(BuildContext context) {
@@ -186,7 +194,7 @@ class _ProductButton extends StatelessWidget {
         child: ElevatedButton(
           onPressed: service.loading || isCurrentlyPurchased
               ? null
-              : () => service.buy(product),
+              : () => service.buy(product, userId),
           style: ElevatedButton.styleFrom(
             backgroundColor: isCurrentlyPurchased
                 ? const Color(0xFF333344)

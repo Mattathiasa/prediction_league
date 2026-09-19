@@ -199,7 +199,7 @@ export const scoreFixtureResults = functions.https.onCall(
     // Score all predictions for this fixture
     const predSnap = await db
       .collection('predictions')
-      .where('fixtureId', isEqualTo: fixtureId)
+      .where('fixtureId', '==', fixtureId)
       .get();
 
     const predictedUids = new Set<string>();
