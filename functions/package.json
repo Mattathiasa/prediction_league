@@ -1,0 +1,27 @@
+{
+  "name": "prediction_league_functions",
+  "version": "1.0.0",
+  "description": "Firebase Cloud Functions for Prediction League",
+  "main": "lib/index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^4.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^20.14.0",
+    "firebase-functions-test": "^1.1.0"
+  },
+  "dependenciesMeta": {},
+  "private": true
+}

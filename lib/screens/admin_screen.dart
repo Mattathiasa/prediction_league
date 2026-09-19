@@ -7,7 +7,6 @@ import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
 import '../services/league_service.dart';
 import '../services/notification_service.dart';
-import '../services/result_service.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -18,7 +17,6 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   final FixtureService _fixtureService = FixtureService();
-  final ResultService _resultService = ResultService();
   final LeagueService _leagueService = LeagueService();
 
   bool _unlocked = false;
@@ -126,9 +124,8 @@ class _AdminScreenState extends State<AdminScreen> {
           ? Column(
               children: [
                 Expanded(
-                  child: _FixtureList(
-                      service: _fixtureService,
-                      resultService: _resultService),
+                   child: _FixtureList(
+                       service: _fixtureService),
                 ),
                 _ResetWeeklyPointsBar(
                   resetting: _resetting,
@@ -192,15 +189,13 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _syncFixtures() async {
     setState(() => _syncing = true);
     try {
-      final upcoming = await _fixtureService.syncFixtures();
-      final updated = await _fixtureService.syncLiveAndFinished();
+      final result = await _fixtureService.syncFixtures();
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-              'Synced ${upcoming.length} upcoming fixtures,'
-              ' updated $updated live/finished matches'),
+              'Synced ${result.length} upcoming fixtures'),
           backgroundColor: const Color(0xFF4CAF50),
         ),
       );
@@ -222,9 +217,8 @@ class _AdminScreenState extends State<AdminScreen> {
 
 class _FixtureList extends StatelessWidget {
   final FixtureService service;
-  final ResultService resultService;
 
-  const _FixtureList({required this.service, required this.resultService});
+  const _FixtureList({required this.service});
 
   @override
   Widget build(BuildContext context) {
@@ -262,17 +256,17 @@ class _FixtureList extends StatelessWidget {
           itemCount: fixtures.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, i) => _AdminFixtureCard(
-            fixture: fixtures[i],
-            onEnterResult: () =>
-                _showResultSheet(context, fixtures[i], resultService),
-          ),
+              fixture: fixtures[i],
+              onEnterResult: () =>
+                  _showResultSheet(context, fixtures[i]),
+            ),
         );
       },
     );
   }
 
   Future<void> _showResultSheet(
-      BuildContext context, FixtureModel fixture, ResultService resultService) {
+      BuildContext context, FixtureModel fixture) {
     final currentUserId =
         Provider.of<AuthService>(context, listen: false).userModel?.uid;
     return showModalBottomSheet(
@@ -284,7 +278,7 @@ class _FixtureList extends StatelessWidget {
       ),
       builder: (_) => _ResultEntrySheet(
         fixture: fixture,
-        resultService: resultService,
+        fixtureService: service,
         currentUserId: currentUserId,
       ),
     );
@@ -355,12 +349,12 @@ class _AdminFixtureCard extends StatelessWidget {
 
 class _ResultEntrySheet extends StatefulWidget {
   final FixtureModel fixture;
-  final ResultService resultService;
+  final FixtureService fixtureService;
   final String? currentUserId;
 
   const _ResultEntrySheet({
     required this.fixture,
-    required this.resultService,
+    required this.fixtureService,
     this.currentUserId,
   });
 
@@ -416,7 +410,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
     setState(() => _submitting = true);
 
     try {
-      final userPoints = await widget.resultService.submitResult(
+      final userPoints = await widget.fixtureService.scoreFixtureResults(
         fixtureId: widget.fixture.fixtureId,
         homeScore: _home,
         awayScore: _away,

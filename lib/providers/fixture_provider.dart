@@ -21,8 +21,6 @@ class FixtureProvider extends ChangeNotifier {
 
     try {
       final upcoming = await _service.syncFixtures();
-      // Also update live/finished fixtures so the results screen stays fresh
-      await _service.syncLiveAndFinished();
       // Schedule on-device reminders for every fixture not yet locked
       for (final fixture in upcoming) {
         await NotificationService.scheduleMatchReminder(
