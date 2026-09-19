@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'firebase_options.dart';
@@ -14,10 +15,15 @@ import 'screens/home_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Timezone data required by flutter_local_notifications zonedSchedule
   tz.initializeTimeZones();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  await FirebaseAppCheck.instance.activate(
+    webProvider: ReCaptchaV3Provider('YOUR_RECAPTCHA_SITE_KEY'),
+    androidProvider: AndroidProvider.debug,
+    appleProvider: AppleProvider.debug,
+  );
 
   await NotificationService.initialize();
   await NotificationService.requestPermission();

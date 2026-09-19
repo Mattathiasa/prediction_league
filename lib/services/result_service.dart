@@ -78,7 +78,8 @@ class ResultService {
     return currentUserPoints;
   }
 
-  // Updates accuracy, currentStreak, and bestStreak from all scored predictions
+  // Updates accuracy, streak, prediction counts, and highestWeeklyPoints
+  // from all scored predictions
   Future<void> _recalcUserStats(String userId) async {
     final snap = await _db
         .collection('predictions')
@@ -98,6 +99,8 @@ class ResultService {
     final total = preds.length;
     final correct =
         preds.where((p) => (p['pointsEarned'] as int? ?? 0) > 0).length;
+    final exactScores =
+        preds.where((p) => (p['pointsEarned'] as int? ?? 0) == 5).length;
     final accuracy = (correct / total) * 100;
 
     // Current streak: consecutive correct predictions from the most recent
@@ -122,10 +125,20 @@ class ResultService {
       }
     }
 
+    // Check for new highest weekly points
+    final userSnap = await _db.collection('users').doc(userId).get();
+    final currentWeekly = userSnap.data()?['weeklyPoints'] as int? ?? 0;
+    final highest = userSnap.data()?['highestWeeklyPoints'] as int? ?? 0;
+    final newHighest = max(highest, currentWeekly);
+
     await _db.collection('users').doc(userId).update({
       'accuracy': double.parse(accuracy.toStringAsFixed(1)),
       'streak': currentStreak,
       'bestStreak': bestStreak,
+      'predictionsCount': total,
+      'correctResults': correct,
+      'exactScoreCount': exactScores,
+      'highestWeeklyPoints': newHighest,
     });
   }
 }

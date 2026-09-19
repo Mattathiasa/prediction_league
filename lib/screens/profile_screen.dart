@@ -147,7 +147,7 @@ class _StatsRow extends StatelessWidget {
               color: const Color(0xFFFF7043)),
           _divider(),
           _Stat(
-              label: 'Streak',
+              label: 'Hot',
               value: '${user.streak}',
               icon: Icons.bolt_rounded,
               color: const Color(0xFFFFD700)),

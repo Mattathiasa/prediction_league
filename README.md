@@ -2,7 +2,7 @@
 
 A Flutter mobile app for Premier League football (soccer) score prediction. Users predict match results, earn points based on prediction accuracy, compete on leaderboards, and join private leagues with friends.
 
-Built with Flutter, Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging), and the [football-data.org](https://www.football-data.org) API.
+Built with Flutter, Firebase (Auth, Firestore, Cloud Messaging), and the [football-data.org](https://www.football-data.org) API.
 
 ---
 
@@ -35,6 +35,7 @@ Built with Flutter, Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging)
   - **Sniper** — Predict an exact scoreline (5 pts)
   - **On Fire** — 5 consecutive predictions with points > 0
 - **Admin Panel** — PIN-protected screen (default PIN: `1234`) for entering final scores and scoring predictions
+- **Share Predictions** — Share your prediction for a fixture via the native share sheet
 
 ### For Admins
 
@@ -59,10 +60,15 @@ Built with Flutter, Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging)
 |-------|-----------|
 | Framework | Flutter (stable channel) |
 | State Management | `provider` package (ChangeNotifier / ChangeNotifierProxyProvider) |
-| Backend | Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging) |
+| Backend | Firebase (Auth, Firestore, Cloud Messaging) |
 | External API | football-data.org (Premier League fixtures & results) |
 | Local Notifications | `flutter_local_notifications` + `timezone` |
 | Image Caching | `cached_network_image` |
+| Sharing | `share_plus` |
+
+### App Icon & Splash
+
+Custom app icons and splash screens are configured via `pubspec.yaml` and use assets in `assets/icon/` and `assets/splash/`. Run `dart run flutter_launcher_icons` and `dart run flutter_native_splash:create` to regenerate.
 
 ### Project Structure
 
@@ -81,7 +87,7 @@ prediction_league/
 │   ├── services/
 │   │   ├── auth_service.dart       # Google Sign-In + Firestore user mgmt
 │   │   ├── badge_service.dart      # Badge definitions + awarding logic
-│   │   ├── fixture_service.dart    # Firestore streams + Cloud Functions sync
+│   │   ├── fixture_service.dart    # Firestore streams + client-side fixture fetch
 │   │   ├── league_service.dart     # League CRUD, invite codes, member mgmt
 │   │   ├── notification_service.dart # Match reminders + result notifications
 │   │   ├── prediction_service.dart # Submit predictions (with lock check)
@@ -127,10 +133,9 @@ prediction_league/
 User predicts scores
   → Firestore (predictions collection)
 
-Fixture data (football-data.org API)
-  → Firebase Cloud Function (syncFixtures)
-  → Firestore (fixtures collection)
-  → Client streams (upcomingFixtures, finishedFixtures)
+Fixture data (football-data.org API, client-side)
+   → Firestore (fixtures collection)
+   → Client streams (upcomingFixtures, finishedFixtures)
 
 Admin enters final score
   → ResultService.submitResult()
@@ -139,11 +144,11 @@ Admin enters final score
   → Local notification via NotificationService
 ```
 
-### Why Cloud Functions?
+### Fixture Syncing
 
-The football-data.org API key is never exposed to the client. Instead, a callable Cloud Function (`syncFixtures`) performs the API call server-side, writes fixtures to Firestore, and returns the upcoming matches for client-side notification scheduling. Firestore security rules explicitly **deny all client-side writes to the fixtures collection** — only the Firebase Admin SDK (via Cloud Functions) can write fixtures.
+The football-data.org API key is stored in `lib/config/app_config.dart`. The client app fetches upcoming fixtures directly via the API and writes them to Firestore. This approach was chosen over Cloud Functions due to Spark Plan free-tier limitations.
 
-A scheduled Cloud Function (`updateFixtureStatus`) runs every 5 minutes to auto-update fixture statuses (upcoming → live → finished) and scores.
+> **Note:** In a production deployment with a paid Firebase plan, you may prefer the Cloud Functions approach (see `functions/`) to keep the API key server-side. The functions directory still contains `syncFixtures` and `updateFixtureStatus` for that use case.
 
 ---
 
@@ -209,15 +214,16 @@ This generates `lib/firebase_options.dart` (excluded from version control — se
 
 ### 4. Set Up the football-data.org API Key
 
-Add your API key as a Firebase Functions environment variable:
+Add your API key directly to `lib/config/app_config.dart`:
 
-```bash
-cd functions
-npm install
-firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
+```dart
+class AppConfig {
+  static const String footballDataApiKey = 'YOUR_API_KEY';
+  // ...
+}
 ```
 
-> **Important:** The API key is never committed to the repository or exposed to the client. It lives only in Cloud Functions environment variables.
+> **For production:** Consider moving the API key to Cloud Functions (see `functions/`) and restricting Firestore writes to the Admin SDK only. The current client-side approach is suitable for development and free-tier usage.
 
 ### 5. Deploy
 
@@ -228,8 +234,8 @@ firebase deploy
 ### 6. Run Locally
 
 ```bash
-# Start the Firebase emulator (Firestore + Functions)
-firebase emulators:start --only firestore,functions
+# Start the Firebase emulator (Firestore)
+firebase emulators:start --only firestore
 
 # In another terminal, run the Flutter app
 flutter run

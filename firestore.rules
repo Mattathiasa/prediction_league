@@ -7,10 +7,17 @@ service cloud.firestore {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Fixtures: any logged-in user can read and write (client-side sync).
-    // Free-tier (Spark) compatible — no Cloud Functions required.
+    // Fixtures: readable by all authenticated users.
+    // Writable by authenticated users — relies on App Check enforcement
+    // (enable in Firebase console) to prevent forged writes from
+    // non-genuine clients. On Spark Plan there's no server-side admin check.
+    // To fully secure, upgrade to Blaze and move writes to Cloud Functions.
     match /fixtures/{fixtureId} {
-      allow read, write: if request.auth != null;
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['status', 'homeScore', 'awayScore']);
+      allow delete: if false;
     }
 
     // Predictions: users can read/write their own only
