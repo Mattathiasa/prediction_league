@@ -25,7 +25,7 @@ class PredictionProvider extends ChangeNotifier {
 
   // Called by ChangeNotifierProxyProvider when auth state changes
   void startListening(String userId) {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     _predictions = {};
     _subscription = _service.userPredictions(userId).listen((list) {
       _predictions = {for (final p in list) p.fixtureId: p};
@@ -34,7 +34,7 @@ class PredictionProvider extends ChangeNotifier {
   }
 
   void stopListening() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     _subscription = null;
     _predictions = {};
     notifyListeners();
@@ -87,7 +87,7 @@ class PredictionProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     _historyStream = null;
     super.dispose();
   }

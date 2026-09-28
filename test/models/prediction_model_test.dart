@@ -10,13 +10,15 @@ void main() {
         fixtureId: 'fixture1',
         homeGuess: 1,
         awayGuess: 0,
-        pointsEarned: 0,
         submittedAt: DateTime.now(),
-        locked: false,
       );
 
       final updated = original.copyWith(
-          homeGuess: 2, awayGuess: 1, pointsEarned: 3, locked: true);
+        homeGuess: 2,
+        awayGuess: 1,
+        pointsEarned: 3,
+        locked: true,
+      );
 
       expect(updated.homeGuess, 2);
       expect(updated.awayGuess, 1);
@@ -51,8 +53,10 @@ void main() {
       expect(restored.awayGuess, 1);
       expect(restored.pointsEarned, 3);
       expect(restored.locked, true);
-      expect(restored.submittedAt.millisecondsSinceEpoch,
-          submittedAt.millisecondsSinceEpoch);
+      expect(
+        restored.submittedAt.millisecondsSinceEpoch,
+        submittedAt.millisecondsSinceEpoch,
+      );
     });
   });
 }

@@ -1,9 +1,11 @@
 import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+
 import '../models/league_model.dart';
-import '../models/user_model.dart';
 import '../models/matchup_model.dart';
+import '../models/user_model.dart';
 
 class LeagueService {
   // Resolved lazily rather than in the initialiser list so that constructing
@@ -65,7 +67,8 @@ class LeagueService {
       final result = await _functions
           .httpsCallable('joinLeague')
           .call<Map<String, dynamic>>(
-              {'inviteCode': code.trim().toUpperCase()});
+        {'inviteCode': code.trim().toUpperCase()},
+      );
       return result.data['leagueId'] as String;
     } on FirebaseFunctionsException catch (e) {
       throw Exception(e.message ?? 'Could not join that league.');
@@ -79,10 +82,12 @@ class LeagueService {
         .collection('leagues')
         .where('memberIds', arrayContains: userId)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => LeagueModel.fromFirestore(d.data(), d.id))
-            .toList()
-          ..sort((a, b) => a.createdAt.compareTo(b.createdAt)));
+        .map(
+          (snap) => snap.docs
+              .map((d) => LeagueModel.fromFirestore(d.data(), d.id))
+              .toList()
+            ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        );
   }
 
   /// Firestore rejects a `whereIn` filter with more than 10 values.
@@ -103,15 +108,19 @@ class LeagueService {
     }
 
     final results = await Future.wait(
-      chunks.map((chunk) => _db
-          .collection('publicProfiles')
-          .where(FieldPath.documentId, whereIn: chunk)
-          .get()),
+      chunks.map(
+        (chunk) => _db
+            .collection('publicProfiles')
+            .where(FieldPath.documentId, whereIn: chunk)
+            .get(),
+      ),
     );
 
     return results
-        .expand((snap) =>
-            snap.docs.map((d) => UserModel.fromPublicProfile(d.data(), d.id)))
+        .expand(
+          (snap) =>
+              snap.docs.map((d) => UserModel.fromPublicProfile(d.data(), d.id)),
+        )
         .toList()
       ..sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
   }
@@ -139,19 +148,22 @@ class LeagueService {
     while (i <= j) {
       if (i == j) {
         // Odd one out — gets a bye
-        matchups.add(LeagueMatchup(
-          home: sorted[i],
-          away: null,
-          isBye: true,
-        ));
+        matchups.add(
+          LeagueMatchup(
+            home: sorted[i],
+            isBye: true,
+          ),
+        );
         break;
       }
 
       // Assign home to top seed, away to bottom seed
-      matchups.add(LeagueMatchup(
-        home: sorted[i],
-        away: sorted[j],
-      ));
+      matchups.add(
+        LeagueMatchup(
+          home: sorted[i],
+          away: sorted[j],
+        ),
+      );
       i++;
       j--;
     }

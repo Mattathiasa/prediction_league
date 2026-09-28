@@ -1,12 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/fixture_model.dart';
 import '../models/prediction_model.dart';
 import '../providers/fixture_provider.dart';
 import '../providers/prediction_provider.dart';
 import '../services/auth_service.dart';
-import 'predict_screen.dart';
 import '../theme/app_colors.dart';
+import 'predict_screen.dart';
 
 class FixtureListScreen extends StatefulWidget {
   const FixtureListScreen({super.key});
@@ -22,7 +25,7 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
     // Sync from football-data.org on first open — only for admins
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (context.read<AuthService>().isAdmin) {
-        context.read<FixtureProvider>().syncFixtures();
+        unawaited(context.read<FixtureProvider>().syncFixtures());
       }
     });
   }
@@ -41,7 +44,10 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
         title: const Text(
           'Fixtures',
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         actions: [
           if (fixtureProvider.isLoading)
@@ -51,14 +57,16 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                    color: AppColors.accent, strokeWidth: 2),
+                  color: AppColors.accent,
+                  strokeWidth: 2,
+                ),
               ),
             )
           else if (context.read<AuthService>().isAdmin)
             IconButton(
               icon: const Icon(Icons.sync, color: Colors.white70),
               tooltip: 'Refresh from API',
-              onPressed: () => fixtureProvider.syncFixtures(),
+              onPressed: fixtureProvider.syncFixtures,
             ),
         ],
       ),
@@ -84,14 +92,14 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
 
                 if (fixtures.isEmpty) {
                   return _EmptyState(
-                    onRefresh: () => fixtureProvider.syncFixtures(),
+                    onRefresh: fixtureProvider.syncFixtures,
                   );
                 }
 
                 return RefreshIndicator(
                   color: AppColors.accent,
                   backgroundColor: AppColors.surface,
-                  onRefresh: () => fixtureProvider.syncFixtures(),
+                  onRefresh: fixtureProvider.syncFixtures,
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
                     itemCount: fixtures.length,
@@ -105,7 +113,7 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                         prediction: prediction,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(
+                          MaterialPageRoute<void>(
                             builder: (_) => PredictScreen(fixture: fixture),
                           ),
                         ),
@@ -235,7 +243,10 @@ class _KickoffChip extends StatelessWidget {
       child: Text(
         _label(),
         style: const TextStyle(
-            color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
+          color: Colors.white70,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
@@ -285,7 +296,10 @@ class _Badge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-                color: color, fontSize: 10, fontWeight: FontWeight.bold),
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -327,13 +341,19 @@ class _FirestoreError extends StatelessWidget {
           children: [
             const Icon(Icons.cloud_off, color: Colors.white24, size: 48),
             const SizedBox(height: 16),
-            const Text('Firestore error',
-                style: TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
+            const Text(
+              'Firestore error',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             const SizedBox(height: 8),
-            Text(error,
-                style: const TextStyle(color: Colors.white38, fontSize: 12),
-                textAlign: TextAlign.center),
+            Text(
+              error,
+              style: const TextStyle(color: Colors.white38, fontSize: 12),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 8),
             const Text(
               'If this is your first run, open the Firestore console,\n'
@@ -361,9 +381,10 @@ class _EmptyState extends StatelessWidget {
         children: [
           const Icon(Icons.sports_soccer, size: 64, color: Colors.white12),
           const SizedBox(height: 16),
-          const Text('No upcoming fixtures',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          const Text(
+            'No upcoming fixtures',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 6),
           const Text(
             'Tap sync to load from football-data.org',
@@ -375,7 +396,8 @@ class _EmptyState extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.accent,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             icon: const Icon(Icons.sync),
             label: const Text('Sync Fixtures'),

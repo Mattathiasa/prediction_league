@@ -1,20 +1,23 @@
+import 'dart:async';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
+
 import 'firebase_options.dart';
 import 'providers/fixture_provider.dart';
 import 'providers/league_provider.dart';
 import 'providers/prediction_provider.dart';
+import 'screens/auth_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/subscription_service.dart';
-import 'screens/auth_screen.dart';
-import 'screens/verify_email_screen.dart';
-import 'screens/home_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
@@ -35,7 +38,8 @@ void main() async {
     appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
   );
 
-  MobileAds.instance.initialize();
+  // Deliberately not awaited: ad SDK startup should not delay first paint.
+  unawaited(MobileAds.instance.initialize());
 
   await NotificationService.initialize();
   await NotificationService.requestPermission();
@@ -81,7 +85,7 @@ class PredictionLeagueApp extends StatelessWidget {
           update: (_, auth, prev) {
             final provider = prev ?? SubscriptionService();
             if (auth.isEmailVerified && auth.userModel != null) {
-              provider.init(auth.userModel!.uid);
+              unawaited(provider.init(auth.userModel!.uid));
             } else if (auth.userModel == null) {
               provider.reset();
             }

@@ -88,7 +88,8 @@ class _PredictScreenState extends State<PredictScreen> {
       await NotificationService.cancelMatchReminder(widget.fixture.fixtureId);
       if (!mounted) return;
       _showSnack(
-          _existing == null ? 'Prediction saved!' : 'Prediction updated!');
+        _existing == null ? 'Prediction saved!' : 'Prediction updated!',
+      );
       Navigator.pop(context);
     } else {
       final err = context.read<PredictionProvider>().error;
@@ -97,10 +98,12 @@ class _PredictScreenState extends State<PredictScreen> {
   }
 
   void _showSnack(String msg, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? Colors.red.shade700 : AppColors.accent,
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: isError ? Colors.red.shade700 : AppColors.accent,
+      ),
+    );
   }
 
   @override
@@ -117,7 +120,10 @@ class _PredictScreenState extends State<PredictScreen> {
         title: Text(
           '${widget.fixture.homeTeam} vs ${widget.fixture.awayTeam}',
           style: const TextStyle(
-              color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+            color: Colors.white,
+            fontSize: 15,
+            fontWeight: FontWeight.bold,
+          ),
           overflow: TextOverflow.ellipsis,
         ),
       ),
@@ -150,21 +156,26 @@ class _PredictScreenState extends State<PredictScreen> {
                     disabledBackgroundColor:
                         AppColors.accent.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: predProvider.isSubmitting
                       ? const SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5),
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
                         )
                       : Text(
                           _existing != null
                               ? 'Update Prediction'
                               : 'Submit Prediction',
                           style: const TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
@@ -202,7 +213,7 @@ class _MatchHeader extends StatelessWidget {
       'Sep',
       'Oct',
       'Nov',
-      'Dec'
+      'Dec',
     ];
     final kickoffStr =
         '${weekdays[local.weekday - 1]} ${local.day} ${months[local.month - 1]}'
@@ -228,31 +239,37 @@ class _MatchHeader extends StatelessWidget {
                   fixture.homeTeam,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 12),
-                child: Text('vs',
-                    style: TextStyle(color: Colors.white38, fontSize: 14)),
+                child: Text(
+                  'vs',
+                  style: TextStyle(color: Colors.white38, fontSize: 14),
+                ),
               ),
               Expanded(
                 child: Text(
                   fixture.awayTeam,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Text(kickoffStr,
-              style: const TextStyle(color: Colors.white54, fontSize: 13)),
+          Text(
+            kickoffStr,
+            style: const TextStyle(color: Colors.white54, fontSize: 13),
+          ),
         ],
       ),
     );
@@ -282,8 +299,10 @@ class _CountdownBanner extends StatelessWidget {
         children: [
           const Icon(Icons.timer_outlined, color: AppColors.accent, size: 20),
           const SizedBox(width: 10),
-          const Text('Locks in ',
-              style: TextStyle(color: Colors.white60, fontSize: 14)),
+          const Text(
+            'Locks in ',
+            style: TextStyle(color: Colors.white60, fontSize: 14),
+          ),
           Text(
             '$h:$m:$s',
             style: const TextStyle(
@@ -318,9 +337,10 @@ class _LockedBanner extends StatelessWidget {
           Text(
             'Prediction window closed',
             style: TextStyle(
-                color: Colors.redAccent,
-                fontSize: 14,
-                fontWeight: FontWeight.w600),
+              color: Colors.redAccent,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -331,8 +351,10 @@ class _LockedBanner extends StatelessWidget {
 class _LockedPredictionSummary extends StatelessWidget {
   final PredictionModel prediction;
   final FixtureModel fixture;
-  const _LockedPredictionSummary(
-      {required this.prediction, required this.fixture});
+  const _LockedPredictionSummary({
+    required this.prediction,
+    required this.fixture,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -347,17 +369,21 @@ class _LockedPredictionSummary extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          const Icon(Icons.check_circle_outline,
-              color: AppColors.accent, size: 18),
+          const Icon(
+            Icons.check_circle_outline,
+            color: AppColors.accent,
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               'Your prediction: '
               '${prediction.homeGuess} – ${prediction.awayGuess}',
               style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600),
+                color: Colors.white70,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -410,7 +436,10 @@ class _ScoreCard extends StatelessWidget {
           Text(
             isLocked ? 'Your Prediction' : 'Enter Your Score',
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -418,15 +447,21 @@ class _ScoreCard extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Text(homeTeam,
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 12),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      homeTeam,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 10),
                     _ScoreStepper(
-                        controller: homeController, isLocked: isLocked),
+                      controller: homeController,
+                      isLocked: isLocked,
+                    ),
                   ],
                 ),
               ),
@@ -435,23 +470,30 @@ class _ScoreCard extends StatelessWidget {
                 child: Text(
                   '–',
                   style: TextStyle(
-                      color: Colors.white38,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold),
+                    color: Colors.white38,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Expanded(
                 child: Column(
                   children: [
-                    Text(awayTeam,
-                        style: const TextStyle(
-                            color: Colors.white54, fontSize: 12),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      awayTeam,
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     const SizedBox(height: 10),
                     _ScoreStepper(
-                        controller: awayController, isLocked: isLocked),
+                      controller: awayController,
+                      isLocked: isLocked,
+                    ),
                   ],
                 ),
               ),
@@ -481,7 +523,9 @@ class _ScoreStepper extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _StepBtn(
-            icon: Icons.remove, onPressed: isLocked ? null : () => _change(-1)),
+          icon: Icons.remove,
+          onPressed: isLocked ? null : () => _change(-1),
+        ),
         Container(
           width: 60,
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -492,7 +536,10 @@ class _ScoreStepper extends StatelessWidget {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 30,
+              fontWeight: FontWeight.bold,
+            ),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
@@ -505,7 +552,9 @@ class _ScoreStepper extends StatelessWidget {
           ),
         ),
         _StepBtn(
-            icon: Icons.add, onPressed: isLocked ? null : () => _change(1)),
+          icon: Icons.add,
+          onPressed: isLocked ? null : () => _change(1),
+        ),
       ],
     );
   }

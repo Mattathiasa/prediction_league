@@ -1,6 +1,7 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/badge_service.dart';
@@ -19,11 +20,14 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Profile',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -91,7 +95,9 @@ class _ProfileHeader extends StatelessWidget {
               color: AppColors.gold.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: AppColors.gold.withValues(alpha: 0.5), width: 0.5),
+                color: AppColors.gold.withValues(alpha: 0.5),
+                width: 0.5,
+              ),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
@@ -133,7 +139,10 @@ class _ProfileHeader extends StatelessWidget {
   Widget _initials(String name) => Text(
         name.isNotEmpty ? name[0].toUpperCase() : '?',
         style: const TextStyle(
-            fontSize: 36, fontWeight: FontWeight.bold, color: Colors.white),
+          fontSize: 36,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
       );
 }
 
@@ -156,35 +165,42 @@ class _StatsRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _Stat(
-              label: 'This Week',
-              value: '${user.weeklyPoints}',
-              icon: Icons.calendar_today_rounded,
-              color: AppColors.info),
+            label: 'This Week',
+            value: '${user.weeklyPoints}',
+            icon: Icons.calendar_today_rounded,
+            color: AppColors.info,
+          ),
           _divider(),
           _Stat(
-              label: 'Accuracy',
-              value: '${user.accuracy.toStringAsFixed(1)}%',
-              icon: Icons.track_changes_rounded,
-              color: AppColors.accent),
+            label: 'Accuracy',
+            value: '${user.accuracy.toStringAsFixed(1)}%',
+            icon: Icons.track_changes_rounded,
+            color: AppColors.accent,
+          ),
           _divider(),
           _Stat(
-              label: 'Best Streak',
-              value: '${user.bestStreak}',
-              icon: Icons.local_fire_department_rounded,
-              color: AppColors.live),
+            label: 'Best Streak',
+            value: '${user.bestStreak}',
+            icon: Icons.local_fire_department_rounded,
+            color: AppColors.live,
+          ),
           _divider(),
           _Stat(
-              label: 'Hot',
-              value: '${user.streak}',
-              icon: Icons.bolt_rounded,
-              color: AppColors.gold),
+            label: 'Hot',
+            value: '${user.streak}',
+            icon: Icons.bolt_rounded,
+            color: AppColors.gold,
+          ),
         ],
       ),
     );
   }
 
   Widget _divider() => Container(
-      width: 1, height: 40, color: Colors.white.withValues(alpha: 0.08));
+        width: 1,
+        height: 40,
+        color: Colors.white.withValues(alpha: 0.08),
+      );
 }
 
 class _Stat extends StatelessWidget {
@@ -193,11 +209,12 @@ class _Stat extends StatelessWidget {
   final IconData icon;
   final Color color;
 
-  const _Stat(
-      {required this.label,
-      required this.value,
-      required this.icon,
-      required this.color});
+  const _Stat({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -205,14 +222,19 @@ class _Stat extends StatelessWidget {
       children: [
         Icon(icon, color: color, size: 20),
         const SizedBox(height: 6),
-        Text(value,
-            style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16)),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 16,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(color: Colors.white38, fontSize: 10)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white38, fontSize: 10),
+        ),
       ],
     );
   }
@@ -229,11 +251,14 @@ class _BadgesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Badges',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
+        const Text(
+          'Badges',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 14),
         GridView.builder(
           shrinkWrap: true,
@@ -274,9 +299,10 @@ class _BadgeCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: earned
-                ? info.color.withValues(alpha: 0.4)
-                : Colors.white.withValues(alpha: 0.05)),
+          color: earned
+              ? info.color.withValues(alpha: 0.4)
+              : Colors.white.withValues(alpha: 0.05),
+        ),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -295,7 +321,10 @@ class _BadgeCard extends StatelessWidget {
           Text(
             info.name,
             style: TextStyle(
-                color: textColor, fontWeight: FontWeight.bold, fontSize: 12),
+              color: textColor,
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
             textAlign: TextAlign.center,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -304,7 +333,9 @@ class _BadgeCard extends StatelessWidget {
           Text(
             earned ? info.description : '???',
             style: TextStyle(
-                color: textColor.withValues(alpha: 0.7), fontSize: 10),
+              color: textColor.withValues(alpha: 0.7),
+              fontSize: 10,
+            ),
             textAlign: TextAlign.center,
             maxLines: 2,
           ),

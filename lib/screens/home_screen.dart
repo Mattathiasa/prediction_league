@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
-import '../models/user_model.dart';
+import '../theme/app_colors.dart';
 import '../widgets/banner_ad_widget.dart';
+import '../widgets/nav_card.dart';
+import '../widgets/user_avatar.dart';
 import 'admin_screen.dart';
 import 'fixture_list_screen.dart';
 import 'history_screen.dart';
@@ -12,9 +16,6 @@ import 'my_league_screen.dart';
 import 'paywall_screen.dart';
 import 'profile_screen.dart';
 import 'results_screen.dart';
-import '../theme/app_colors.dart';
-import '../widgets/user_avatar.dart';
-import '../widgets/nav_card.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -43,11 +44,17 @@ class HomeScreen extends StatelessWidget {
             color: AppColors.surface,
             onSelected: (value) async {
               if (value == 'admin') {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const AdminScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(builder: (_) => const AdminScreen()),
+                );
               } else if (value == 'premium') {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const PaywallScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PaywallScreen(),
+                  ),
+                );
               } else if (value == 'signout') {
                 final confirmed = await _confirmSignOut(context);
                 if (confirmed && context.mounted) await auth.signOut();
@@ -59,31 +66,43 @@ class HomeScreen extends StatelessWidget {
                 items.add(
                   const PopupMenuItem(
                     value: 'admin',
-                    child: Row(children: [
-                      Icon(Icons.admin_panel_settings_outlined,
-                          color: Colors.white54, size: 18),
-                      SizedBox(width: 10),
-                      Text('Admin', style: TextStyle(color: Colors.white70)),
-                    ]),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.admin_panel_settings_outlined,
+                          color: Colors.white54,
+                          size: 18,
+                        ),
+                        SizedBox(width: 10),
+                        Text('Admin', style: TextStyle(color: Colors.white70)),
+                      ],
+                    ),
                   ),
                 );
               }
               items.addAll([
                 const PopupMenuItem(
                   value: 'premium',
-                  child: Row(children: [
-                    Icon(Icons.star_outline, color: Colors.white54, size: 18),
-                    SizedBox(width: 10),
-                    Text('Go Premium', style: TextStyle(color: Colors.white70)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.star_outline, color: Colors.white54, size: 18),
+                      SizedBox(width: 10),
+                      Text(
+                        'Go Premium',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'signout',
-                  child: Row(children: [
-                    Icon(Icons.logout, color: Colors.white54, size: 18),
-                    SizedBox(width: 10),
-                    Text('Sign out', style: TextStyle(color: Colors.white70)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout, color: Colors.white54, size: 18),
+                      SizedBox(width: 10),
+                      Text('Sign out', style: TextStyle(color: Colors.white70)),
+                    ],
+                  ),
                 ),
               ]);
               return items;
@@ -140,8 +159,10 @@ class HomeScreen extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel',
-                    style: TextStyle(color: Colors.white60)),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: Colors.white60),
+                ),
               ),
               ElevatedButton(
                 style:
@@ -175,9 +196,10 @@ class _ProfileCard extends StatelessWidget {
       child: Row(
         children: [
           UserAvatar(
-              radius: 34,
-              photoUrl: user.photoUrl,
-              displayName: user.displayName),
+            radius: 34,
+            photoUrl: user.photoUrl,
+            displayName: user.displayName,
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

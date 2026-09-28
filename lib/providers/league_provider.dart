@@ -21,7 +21,7 @@ class LeagueProvider extends ChangeNotifier {
   void startListening(String userId) {
     if (_currentUserId == userId) return;
     _currentUserId = userId;
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     _isLoading = true;
     notifyListeners();
 
@@ -41,7 +41,7 @@ class LeagueProvider extends ChangeNotifier {
   }
 
   void stopListening() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     _subscription = null;
     _leagues = [];
     _currentUserId = null;
@@ -59,7 +59,10 @@ class LeagueProvider extends ChangeNotifier {
     _error = null;
     try {
       return await _service.createLeague(
-          name: name, adminId: adminId, inviteCode: inviteCode);
+        name: name,
+        adminId: adminId,
+        inviteCode: inviteCode,
+      );
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();
@@ -84,7 +87,7 @@ class LeagueProvider extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     super.dispose();
   }
 }

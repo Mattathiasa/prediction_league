@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
@@ -15,7 +17,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   @override
   void initState() {
     super.initState();
-    _loadAd();
+    unawaited(_loadAd());
   }
 
   Future<void> _loadAd() async {
@@ -30,7 +32,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
           });
         },
         onAdFailedToLoad: (ad, err) {
-          ad.dispose();
+          unawaited(ad.dispose());
         },
       ),
       request: const AdRequest(),
@@ -41,7 +43,7 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
 
   @override
   void dispose() {
-    _bannerAd?.dispose();
+    unawaited(_bannerAd?.dispose() ?? Future<void>.value());
     super.dispose();
   }
 
@@ -67,6 +69,8 @@ class ConditionalBannerAd extends StatelessWidget {
   Widget build(BuildContext context) {
     if (isPremium) return const SizedBox.shrink();
     return const Align(
-        alignment: Alignment.bottomCenter, child: BannerAdWidget());
+      alignment: Alignment.bottomCenter,
+      child: BannerAdWidget(),
+    );
   }
 }

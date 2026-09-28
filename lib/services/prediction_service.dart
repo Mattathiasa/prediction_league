@@ -35,7 +35,6 @@ class PredictionService {
       homeGuess: homeGuess,
       awayGuess: awayGuess,
       submittedAt: DateTime.now(),
-      locked: false,
     );
 
     final ref = _db.collection('predictions').doc(docId);
@@ -65,9 +64,11 @@ class PredictionService {
         .collection('predictions')
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
+              .toList(),
+        );
   }
 
   // Scored predictions only (locked == true), newest fixture first
@@ -77,9 +78,11 @@ class PredictionService {
         .where('userId', isEqualTo: userId)
         .where('locked', isEqualTo: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
+              .toList(),
+        );
   }
 
   // Combined stream: scored predictions joined with their fixtures
@@ -96,8 +99,10 @@ class PredictionService {
       final fixtureMap = {for (final f in fixtures) f.fixtureId: f};
 
       final history = predictions
-          .map((p) =>
-              HistoryEntry(fixture: fixtureMap[p.fixtureId], prediction: p))
+          .map(
+            (p) =>
+                HistoryEntry(fixture: fixtureMap[p.fixtureId], prediction: p),
+          )
           .toList()
         ..sort((a, b) {
           final aTime = a.fixture?.kickoff ?? a.prediction.submittedAt;
@@ -110,7 +115,9 @@ class PredictionService {
   }
 
   Future<PredictionModel?> getPrediction(
-      String userId, String fixtureId) async {
+    String userId,
+    String fixtureId,
+  ) async {
     final snap = await _db
         .collection('predictions')
         .doc(_docId(userId, fixtureId))
@@ -135,7 +142,8 @@ class _FixtureLookup {
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
       all.addAll(
-          snap.docs.map((d) => FixtureModel.fromFirestore(d.data(), d.id)));
+        snap.docs.map((d) => FixtureModel.fromFirestore(d.data(), d.id)),
+      );
     }
     return all;
   }

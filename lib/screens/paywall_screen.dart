@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
 import '../theme/app_colors.dart';
@@ -19,7 +22,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<AuthService>().userModel?.uid;
       final sub = context.read<SubscriptionService>();
-      if (userId != null) sub.init(userId);
+      if (userId != null) unawaited(sub.init(userId));
     });
   }
 
@@ -100,11 +103,13 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     color: AppColors.premium,
                   ),
                   const SizedBox(height: 32),
-                  ...sub.products.map((product) => _ProductButton(
-                        product: product,
-                        service: sub,
-                        userId: auth.userModel?.uid ?? '',
-                      )),
+                  ...sub.products.map(
+                    (product) => _ProductButton(
+                      product: product,
+                      service: sub,
+                      userId: auth.userModel?.uid ?? '',
+                    ),
+                  ),
                   TextButton(
                     onPressed: () =>
                         sub.restorePurchases(userId: auth.userModel?.uid),
@@ -181,8 +186,11 @@ class _ProductButton extends StatelessWidget {
   final SubscriptionService service;
   final String userId;
 
-  const _ProductButton(
-      {required this.product, required this.service, required this.userId});
+  const _ProductButton({
+    required this.product,
+    required this.service,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {

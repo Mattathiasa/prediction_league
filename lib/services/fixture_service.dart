@@ -11,9 +11,8 @@ class FixtureService {
   /// Fetches upcoming fixtures from football-data.org (server-side),
   /// batch-writes to Firestore, and returns the upcoming fixtures list.
   Future<List<FixtureModel>> syncFixtures() async {
-    final HttpsCallable callable =
-        FirebaseFunctions.instance.httpsCallable('syncFixtures');
-    await callable();
+    final callable = FirebaseFunctions.instance.httpsCallable('syncFixtures');
+    await callable.call<Map<String, dynamic>>();
 
     // After sync, read upcoming fixtures from Firestore
     final snap = await _db
@@ -38,14 +37,12 @@ class FixtureService {
   }) async {
     final HttpsCallable callable =
         FirebaseFunctions.instance.httpsCallable('scoreFixtureResults');
-    final result = await callable({
+    final result = await callable.call<Map<String, dynamic>>({
       'fixtureId': fixtureId,
       'homeScore': homeScore,
       'awayScore': awayScore,
-      'currentUserId': currentUserId,
     });
-    final pts = result.data['pointsEarned'] as int?;
-    return pts;
+    return result.data['pointsEarned'] as int?;
   }
 
   // Live/finished fixture updates are handled by the scheduled Cloud Function
@@ -60,9 +57,11 @@ class FixtureService {
         .orderBy('kickoff')
         .limit(20)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
+              .toList(),
+        );
   }
 
   Future<FixtureModel?> getFixture(String fixtureId) async {

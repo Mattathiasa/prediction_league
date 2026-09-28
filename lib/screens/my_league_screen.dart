@@ -1,16 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
 import '../models/league_model.dart';
 import '../models/matchup_model.dart';
 import '../models/user_model.dart';
 import '../providers/league_provider.dart';
 import '../services/auth_service.dart';
 import '../services/league_service.dart';
-import 'create_league_screen.dart';
-import 'join_league_screen.dart';
 import '../theme/app_colors.dart';
 import '../widgets/user_avatar.dart';
+import 'create_league_screen.dart';
+import 'join_league_screen.dart';
 
 class MyLeagueScreen extends StatefulWidget {
   const MyLeagueScreen({super.key});
@@ -40,11 +43,14 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('My League',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'My League',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
         actions: [
           if (effective != null)
             PopupMenuButton<String>(
@@ -53,35 +59,50 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
               onSelected: (v) {
                 if (v == 'join') {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const JoinLeagueScreen()));
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const JoinLeagueScreen(),
+                    ),
+                  );
                 } else if (v == 'create') {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const CreateLeagueScreen()));
+                    context,
+                    MaterialPageRoute<void>(
+                      builder: (_) => const CreateLeagueScreen(),
+                    ),
+                  );
                 }
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(
                   value: 'join',
-                  child: Row(children: [
-                    Icon(Icons.group_add, color: Colors.white54, size: 18),
-                    SizedBox(width: 10),
-                    Text('Join another league',
-                        style: TextStyle(color: Colors.white70)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.group_add, color: Colors.white54, size: 18),
+                      SizedBox(width: 10),
+                      Text(
+                        'Join another league',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
                 const PopupMenuItem(
                   value: 'create',
-                  child: Row(children: [
-                    Icon(Icons.add_circle_outline,
-                        color: Colors.white54, size: 18),
-                    SizedBox(width: 10),
-                    Text('Create new league',
-                        style: TextStyle(color: Colors.white70)),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white54,
+                        size: 18,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        'Create new league',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -89,7 +110,8 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
       ),
       body: leagueProvider.isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: AppColors.accent))
+              child: CircularProgressIndicator(color: AppColors.accent),
+            )
           : effective == null
               ? _EmptyLeague(currentUserId: currentUser.uid)
               : Column(
@@ -135,11 +157,14 @@ class _EmptyLeague extends StatelessWidget {
           children: [
             const Icon(Icons.group_outlined, size: 64, color: Colors.white12),
             const SizedBox(height: 16),
-            const Text("You're not in any leagues",
-                style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17)),
+            const Text(
+              "You're not in any leagues",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 17,
+              ),
+            ),
             const SizedBox(height: 8),
             const Text(
               'Create a private league and invite friends,\nor join one with an invite code.',
@@ -153,17 +178,21 @@ class _EmptyLeague extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const CreateLeagueScreen()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const CreateLeagueScreen(),
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 icon: const Icon(Icons.add),
-                label: const Text('Create a League',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Create a League',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -173,18 +202,22 @@ class _EmptyLeague extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const JoinLeagueScreen()),
+                  MaterialPageRoute<void>(
+                    builder: (_) => const JoinLeagueScreen(),
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.accent,
                   side: const BorderSide(color: AppColors.accent, width: 0.8),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
                 icon: const Icon(Icons.group_add),
-                label: const Text('Join with a Code',
-                    style:
-                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Join with a Code',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ],
@@ -201,8 +234,11 @@ class _LeaguePicker extends StatelessWidget {
   final LeagueModel selected;
   final void Function(LeagueModel) onSelect;
 
-  const _LeaguePicker(
-      {required this.leagues, required this.selected, required this.onSelect});
+  const _LeaguePicker({
+    required this.leagues,
+    required this.selected,
+    required this.onSelect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -220,11 +256,15 @@ class _LeaguePicker extends StatelessWidget {
           dropdownColor: AppColors.surface,
           iconEnabledColor: Colors.white38,
           items: leagues
-              .map((l) => DropdownMenuItem(
-                    value: l,
-                    child: Text(l.name,
-                        style: const TextStyle(color: Colors.white)),
-                  ))
+              .map(
+                (l) => DropdownMenuItem(
+                  value: l,
+                  child: Text(
+                    l.name,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              )
               .toList(),
           onChanged: (l) {
             if (l != null) onSelect(l);
@@ -262,22 +302,28 @@ class _LeagueHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(league.name,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16)),
+                Text(
+                  league.name,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('${league.memberIds.length} members',
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(
+                  '${league.memberIds.length} members',
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
               ],
             ),
           ),
           // Copy invite code
           GestureDetector(
             onTap: () {
-              Clipboard.setData(ClipboardData(text: league.inviteCode));
+              unawaited(
+                Clipboard.setData(ClipboardData(text: league.inviteCode)),
+              );
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   content: Text('Invite code copied!'),
@@ -333,11 +379,15 @@ class _WeeklyMatchups extends StatelessWidget {
           return const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Center(
-                child: SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                        color: AppColors.accent, strokeWidth: 2))),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: AppColors.accent,
+                  strokeWidth: 2,
+                ),
+              ),
+            ),
           );
         }
 
@@ -355,9 +405,10 @@ class _WeeklyMatchups extends StatelessWidget {
               child: Text(
                 'GW $weekNum Matchups',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                ),
               ),
             ),
             ListView.separated(
@@ -375,7 +426,7 @@ class _WeeklyMatchups extends StatelessWidget {
   }
 
   int _weekOfYear(DateTime date) {
-    final start = DateTime(date.year, 1, 1);
+    final start = DateTime(date.year);
     final firstMonday = (8 - start.weekday) % 7;
     final firstWeekStart = start.add(Duration(days: firstMonday));
     if (date.isBefore(firstWeekStart)) return 52;
@@ -400,17 +451,19 @@ class _MatchupCard extends StatelessWidget {
         child: Row(
           children: [
             UserAvatar(
-                radius: 16,
-                photoUrl: matchup.home.photoUrl,
-                displayName: matchup.home.displayName),
+              radius: 16,
+              photoUrl: matchup.home.photoUrl,
+              displayName: matchup.home.displayName,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 '${matchup.home.displayName} (BYE)',
                 style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13),
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -421,10 +474,14 @@ class _MatchupCard extends StatelessWidget {
                 color: AppColors.gold.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color: AppColors.gold.withValues(alpha: 0.45), width: 0.5),
+                  color: AppColors.gold.withValues(alpha: 0.45),
+                  width: 0.5,
+                ),
               ),
-              child: const Text('WON',
-                  style: TextStyle(color: AppColors.gold, fontSize: 10)),
+              child: const Text(
+                'WON',
+                style: TextStyle(color: AppColors.gold, fontSize: 10),
+              ),
             ),
           ],
         ),
@@ -461,26 +518,29 @@ class _MatchupCard extends StatelessWidget {
                 Text(
                   '${home.weeklyPoints}',
                   style: TextStyle(
-                      color: homeColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                    color: homeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 const SizedBox(width: 6),
                 Text(
                   home.displayName,
                   style: TextStyle(
-                      color: homeColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
+                    color: homeColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                   textAlign: TextAlign.end,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 6),
                 UserAvatar(
-                    radius: 16,
-                    photoUrl: home.photoUrl,
-                    displayName: home.displayName),
+                  radius: 16,
+                  photoUrl: home.photoUrl,
+                  displayName: home.displayName,
+                ),
               ],
             ),
           ),
@@ -497,16 +557,18 @@ class _MatchupCard extends StatelessWidget {
             child: Row(
               children: [
                 UserAvatar(
-                    radius: 16,
-                    photoUrl: away.photoUrl,
-                    displayName: away.displayName),
+                  radius: 16,
+                  photoUrl: away.photoUrl,
+                  displayName: away.displayName,
+                ),
                 const SizedBox(width: 6),
                 Text(
                   away.displayName,
                   style: TextStyle(
-                      color: awayColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12),
+                    color: awayColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -514,9 +576,10 @@ class _MatchupCard extends StatelessWidget {
                 Text(
                   '${away.weeklyPoints}',
                   style: TextStyle(
-                      color: awayColor,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16),
+                    color: awayColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ],
             ),
@@ -546,12 +609,16 @@ class _LeagueStandings extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.accent));
+            child: CircularProgressIndicator(color: AppColors.accent),
+          );
         }
         if (snapshot.hasError) {
           return Center(
-              child: Text('Error: ${snapshot.error}',
-                  style: const TextStyle(color: Colors.white54)));
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white54),
+            ),
+          );
         }
 
         final members = snapshot.data ?? [];
@@ -566,20 +633,26 @@ class _LeagueStandings extends StatelessWidget {
                   SizedBox(width: 32),
                   SizedBox(width: 42),
                   Expanded(
-                      child: Text('Player',
-                          style:
-                              TextStyle(color: Colors.white38, fontSize: 11))),
-                  SizedBox(
-                    width: 52,
-                    child: Text('Pts',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    child: Text(
+                      'Player',
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
                   ),
                   SizedBox(
                     width: 52,
-                    child: Text('vs You',
-                        textAlign: TextAlign.right,
-                        style: TextStyle(color: Colors.white38, fontSize: 11)),
+                    child: Text(
+                      'Pts',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
+                  ),
+                  SizedBox(
+                    width: 52,
+                    child: Text(
+                      'vs You',
+                      textAlign: TextAlign.right,
+                      style: TextStyle(color: Colors.white38, fontSize: 11),
+                    ),
                   ),
                 ],
               ),
@@ -608,8 +681,11 @@ class _MemberRow extends StatelessWidget {
   final UserModel member;
   final UserModel currentUser;
 
-  const _MemberRow(
-      {required this.rank, required this.member, required this.currentUser});
+  const _MemberRow({
+    required this.rank,
+    required this.member,
+    required this.currentUser,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -647,20 +723,27 @@ class _MemberRow extends StatelessWidget {
           SizedBox(
             width: 24,
             child: rank <= 3
-                ? Icon(Icons.emoji_events,
-                    color: AppColors.forRank(rank), size: 18)
-                : Text('#$rank',
+                ? Icon(
+                    Icons.emoji_events,
+                    color: AppColors.forRank(rank),
+                    size: 18,
+                  )
+                : Text(
+                    '#$rank',
                     style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold)),
+                      color: Colors.white38,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
           const SizedBox(width: 8),
           // Avatar
           UserAvatar(
-              radius: 12,
-              photoUrl: member.photoUrl,
-              displayName: member.displayName),
+            radius: 12,
+            photoUrl: member.photoUrl,
+            displayName: member.displayName,
+          ),
           const SizedBox(width: 10),
           // Name
           Expanded(
@@ -678,22 +761,28 @@ class _MemberRow extends StatelessWidget {
           // Points
           SizedBox(
             width: 52,
-            child: Text('${member.totalPoints}',
-                textAlign: TextAlign.right,
-                style: const TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13)),
+            child: Text(
+              '${member.totalPoints}',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
           ),
           // vs You
           SizedBox(
             width: 52,
-            child: Text(diffText,
-                textAlign: TextAlign.right,
-                style: TextStyle(
-                    color: diffColor,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13)),
+            child: Text(
+              diffText,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                color: diffColor,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
           ),
         ],
       ),

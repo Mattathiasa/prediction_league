@@ -1,6 +1,9 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 
@@ -57,7 +60,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
-    _sendVerification();
+    unawaited(_sendVerification());
   }
 
   @override
@@ -156,7 +159,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => auth.signOut(),
+                onPressed: auth.signOut,
                 child: const Text(
                   'Use a different account',
                   style: TextStyle(color: Colors.white38),

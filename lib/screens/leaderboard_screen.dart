@@ -1,6 +1,7 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
@@ -42,7 +43,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         title: const Text(
           'Leaderboard',
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
@@ -60,9 +64,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         controller: _tabController,
         children: [
           _LeaderboardTab(
-              sortField: 'totalPoints', currentUserId: currentUserId),
+            sortField: 'totalPoints',
+            currentUserId: currentUserId,
+          ),
           _LeaderboardTab(
-              sortField: 'weeklyPoints', currentUserId: currentUserId),
+            sortField: 'weeklyPoints',
+            currentUserId: currentUserId,
+          ),
         ],
       ),
     );
@@ -98,14 +106,17 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.accent));
+            child: CircularProgressIndicator(color: AppColors.accent),
+          );
         }
 
         if (snapshot.hasError) {
           return Center(
-            child: Text('Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white54),
-                textAlign: TextAlign.center),
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white54),
+              textAlign: TextAlign.center,
+            ),
           );
         }
 
@@ -118,12 +129,19 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events_outlined,
-                    size: 56, color: Colors.white12),
+                Icon(
+                  Icons.emoji_events_outlined,
+                  size: 56,
+                  color: Colors.white12,
+                ),
                 SizedBox(height: 12),
-                Text('No players yet',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(
+                  'No players yet',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           );
@@ -195,9 +213,10 @@ class _RankCard extends StatelessWidget {
                     '#$rank',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white38,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
           const SizedBox(width: 10),
@@ -240,11 +259,16 @@ class _RankCard extends StatelessWidget {
           Text(
             '$pts',
             style: TextStyle(
-                color: rankCol, fontWeight: FontWeight.bold, fontSize: 16),
+              color: rankCol,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(width: 4),
-          const Text('pts',
-              style: TextStyle(color: Colors.white38, fontSize: 11)),
+          const Text(
+            'pts',
+            style: TextStyle(color: Colors.white38, fontSize: 11),
+          ),
         ],
       ),
     );

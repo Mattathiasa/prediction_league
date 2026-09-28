@@ -7,7 +7,6 @@ void main() {
     test('bye matchup returns BYE for resultText', () {
       const matchup = LeagueMatchup(
         home: UserModel(uid: '1', displayName: 'A', photoUrl: ''),
-        away: null,
         isBye: true,
       );
       expect(matchup.resultText, 'BYE');
@@ -17,9 +16,17 @@ void main() {
     test('home win returns W for resultText', () {
       const matchup = LeagueMatchup(
         home: UserModel(
-            uid: '1', displayName: 'A', photoUrl: '', weeklyPoints: 20),
+          uid: '1',
+          displayName: 'A',
+          photoUrl: '',
+          weeklyPoints: 20,
+        ),
         away: UserModel(
-            uid: '2', displayName: 'B', photoUrl: '', weeklyPoints: 10),
+          uid: '2',
+          displayName: 'B',
+          photoUrl: '',
+          weeklyPoints: 10,
+        ),
       );
       expect(matchup.resultText, 'W');
       expect(matchup.homeWon, true);

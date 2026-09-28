@@ -1,8 +1,9 @@
-import 'package:flutter/foundation.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
@@ -89,8 +90,10 @@ class AuthService extends ChangeNotifier {
 
   Future<void> _checkAdmin() async {
     try {
-      final result = await _functions.httpsCallable('checkAdmin')();
-      _isAdmin = (result.data as Map)['isAdmin'] as bool? ?? false;
+      final result = await _functions
+          .httpsCallable('checkAdmin')
+          .call<Map<String, dynamic>>();
+      _isAdmin = result.data['isAdmin'] as bool? ?? false;
     } catch (e) {
       // Admin is a UI affordance only — every privileged callable re-verifies
       // server-side — so a failure here degrades to "not an admin" rather than

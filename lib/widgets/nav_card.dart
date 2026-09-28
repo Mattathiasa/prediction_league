@@ -30,11 +30,14 @@ class NavCard extends StatelessWidget {
     return Semantics(
       button: true,
       label: '$title. $subtitle',
+      // Without this the title and subtitle announce as two separate nodes and
+      // the card is not reported as a single tappable control.
+      excludeSemantics: true,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(builder: builder),
+          MaterialPageRoute<void>(builder: builder),
         ),
         child: Ink(
           width: double.infinity,

@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_functions/cloud_functions.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../models/fixture_model.dart';
 import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
@@ -31,8 +32,10 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _checkAdmin() async {
     setState(() => _checkingAdmin = true);
     try {
-      final result =
-          await FirebaseFunctions.instance.httpsCallable('checkAdmin')();
+      final result = await FirebaseFunctions.instance
+          .httpsCallable('checkAdmin')
+          .call<Map<String, dynamic>>();
+      if (!mounted) return;
       setState(() => _isAdmin = result.data['isAdmin'] as bool? ?? false);
       if (!_isAdmin && mounted) {
         Navigator.pop(context);
@@ -83,11 +86,14 @@ class _AdminScreenState extends State<AdminScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Admin — Enter Results',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 17)),
+        title: const Text(
+          'Admin — Enter Results',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 17,
+          ),
+        ),
         actions: [
           if (_isAdmin)
             IconButton(
@@ -127,8 +133,10 @@ class _AdminScreenState extends State<AdminScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: const Text('Reset Weekly Points?',
-            style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Reset Weekly Points?',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'This sets every user\'s weeklyPoints to 0.\nThis cannot be undone.',
           style: TextStyle(color: Colors.white70),
@@ -213,7 +221,8 @@ class _FixtureList extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: AppColors.accent));
+            child: CircularProgressIndicator(color: AppColors.accent),
+          );
         }
 
         final fixtures = snapshot.data ?? [];
@@ -223,15 +232,24 @@ class _FixtureList extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_outline,
-                    size: 64, color: Colors.white12),
+                Icon(
+                  Icons.check_circle_outline,
+                  size: 64,
+                  color: Colors.white12,
+                ),
                 SizedBox(height: 16),
-                Text('All results entered',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(
+                  'All results entered',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 SizedBox(height: 6),
-                Text('No upcoming or live fixtures remaining',
-                    style: TextStyle(color: Colors.white38, fontSize: 13)),
+                Text(
+                  'No upcoming or live fixtures remaining',
+                  style: TextStyle(color: Colors.white38, fontSize: 13),
+                ),
               ],
             ),
           );
@@ -297,14 +315,16 @@ class _AdminFixtureCard extends StatelessWidget {
                 Text(
                   '${fixture.homeTeam}  vs  ${fixture.awayTeam}',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Text(dateStr,
-                    style:
-                        const TextStyle(color: Colors.white38, fontSize: 12)),
+                Text(
+                  dateStr,
+                  style: const TextStyle(color: Colors.white38, fontSize: 12),
+                ),
               ],
             ),
           ),
@@ -314,12 +334,15 @@ class _AdminFixtureCard extends StatelessWidget {
               backgroundColor: AppColors.accent,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
-            child: const Text('Enter Result',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Enter Result',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -452,32 +475,42 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
           Text(
             '${widget.fixture.homeTeam} vs ${widget.fixture.awayTeam}',
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
-          const Text('Final Score',
-              style: TextStyle(color: Colors.white38, fontSize: 13)),
+          const Text(
+            'Final Score',
+            style: TextStyle(color: Colors.white38, fontSize: 13),
+          ),
           const SizedBox(height: 28),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _ScoreColumn(
-                  label: widget.fixture.homeTeam,
-                  value: _home,
-                  onChange: (d) => _change(true, d)),
+                label: widget.fixture.homeTeam,
+                value: _home,
+                onChange: (d) => _change(true, d),
+              ),
               const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Text('–',
-                    style: TextStyle(
-                        color: Colors.white38,
-                        fontSize: 36,
-                        fontWeight: FontWeight.bold)),
+                child: Text(
+                  '–',
+                  style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
               _ScoreColumn(
-                  label: widget.fixture.awayTeam,
-                  value: _away,
-                  onChange: (d) => _change(false, d)),
+                label: widget.fixture.awayTeam,
+                value: _away,
+                onChange: (d) => _change(false, d),
+              ),
             ],
           ),
           const SizedBox(height: 32),
@@ -489,17 +522,23 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.accent,
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14)),
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
               child: _submitting
                   ? const SizedBox(
                       width: 22,
                       height: 22,
                       child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2.5))
-                  : const Text('Submit Result',
+                        color: Colors.white,
+                        strokeWidth: 2.5,
+                      ),
+                    )
+                  : const Text(
+                      'Submit Result',
                       style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
             ),
           ),
         ],
@@ -513,17 +552,22 @@ class _ScoreColumn extends StatelessWidget {
   final int value;
   final void Function(int) onChange;
 
-  const _ScoreColumn(
-      {required this.label, required this.value, required this.onChange});
+  const _ScoreColumn({
+    required this.label,
+    required this.value,
+    required this.onChange,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(label,
-            style: const TextStyle(color: Colors.white54, fontSize: 12),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
         const SizedBox(height: 10),
         _StepBtn(icon: Icons.add, onPressed: () => onChange(1)),
         const SizedBox(height: 8),
@@ -533,7 +577,10 @@ class _ScoreColumn extends StatelessWidget {
             '$value',
             textAlign: TextAlign.center,
             style: const TextStyle(
-                color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         const SizedBox(height: 8),
@@ -581,7 +628,8 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.background,
         border: Border(
-            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
       ),
       child: Row(
         children: [
@@ -591,11 +639,17 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Reset Weekly Points',
-                    style: TextStyle(
-                        color: Colors.white70, fontWeight: FontWeight.w600)),
-                Text('Sets all weeklyPoints to 0 — do this each Monday',
-                    style: TextStyle(color: Colors.white38, fontSize: 11)),
+                Text(
+                  'Reset Weekly Points',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                Text(
+                  'Sets all weeklyPoints to 0 — do this each Monday',
+                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                ),
               ],
             ),
           ),
@@ -606,7 +660,8 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
               backgroundColor: Colors.red.shade800,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             ),
@@ -615,10 +670,14 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
                     width: 16,
                     height: 16,
                     child: CircularProgressIndicator(
-                        color: Colors.white, strokeWidth: 2))
-                : const Text('Reset',
-                    style:
-                        TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Reset',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
           ),
         ],
       ),

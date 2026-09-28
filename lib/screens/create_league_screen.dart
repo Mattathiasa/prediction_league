@@ -71,11 +71,14 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Create League',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'Create League',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -113,7 +116,8 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                      color: AppColors.accent.withValues(alpha: 0.3)),
+                    color: AppColors.accent.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -140,11 +144,17 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: () => setState(
-                      () => _previewCode = LeagueService.generateInviteCode()),
-                  icon: const Icon(Icons.refresh,
-                      size: 15, color: Colors.white38),
-                  label: const Text('New code',
-                      style: TextStyle(color: Colors.white38, fontSize: 12)),
+                    () => _previewCode = LeagueService.generateInviteCode(),
+                  ),
+                  icon: const Icon(
+                    Icons.refresh,
+                    size: 15,
+                    color: Colors.white38,
+                  ),
+                  label: const Text(
+                    'New code',
+                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                  ),
                 ),
               ),
               const SizedBox(height: 32),
@@ -156,17 +166,25 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: _creating
                       ? const SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2.5))
-                      : const Text('Create League',
+                            color: Colors.white,
+                            strokeWidth: 2.5,
+                          ),
+                        )
+                      : const Text(
+                          'Create League',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.bold)),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -176,9 +194,14 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
     );
   }
 
-  Widget _label(String text) => Text(text,
-      style: const TextStyle(
-          color: Colors.white54, fontSize: 13, fontWeight: FontWeight.w600));
+  Widget _label(String text) => Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white54,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      );
 
   InputDecoration _inputDeco({required String hint}) => InputDecoration(
         hintText: hint,
@@ -187,16 +210,20 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
         filled: true,
         fillColor: AppColors.surface,
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: AppColors.accent)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.accent),
+        ),
         errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.red.shade700)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red.shade700),
+        ),
         focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.red.shade700)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red.shade700),
+        ),
       );
 }

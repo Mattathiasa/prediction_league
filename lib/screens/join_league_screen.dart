@@ -67,22 +67,28 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Join a League',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'Join a League',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Invite Code',
-                style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
+            const Text(
+              'Invite Code',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _codeController,
@@ -104,16 +110,21 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
               decoration: InputDecoration(
                 hintText: 'ABC123',
                 hintStyle: const TextStyle(
-                    color: Colors.white12, fontSize: 30, letterSpacing: 8),
+                  color: Colors.white12,
+                  fontSize: 30,
+                  letterSpacing: 8,
+                ),
                 counterText: '',
                 filled: true,
                 fillColor: AppColors.surface,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: AppColors.accent)),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
               ),
               onSubmitted: (_) => _join(),
             ),
@@ -131,17 +142,25 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: _joining
                     ? const SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5))
-                    : const Text('Join League',
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'Join League',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -154,7 +173,9 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
 class _UpperCaseFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,

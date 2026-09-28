@@ -1,8 +1,9 @@
 import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SubscriptionService extends ChangeNotifier {
   StreamSubscription<List<PurchaseDetails>>? _subscription;
@@ -25,9 +26,14 @@ class SubscriptionService extends ChangeNotifier {
 
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  bool _pending = false;
+
+  /// A purchase is awaiting confirmation from a slow payment method.
+  bool get pending => _pending;
+
   Future<void> init(String? userId) async {
     // Cancel any existing subscription to prevent memory leaks
-    _subscription?.cancel();
+    await _subscription?.cancel();
     _subscription = null;
 
     if (userId == null) {
@@ -55,16 +61,16 @@ class SubscriptionService extends ChangeNotifier {
     _products = response.productDetails;
 
     _subscription = InAppPurchase.instance.purchaseStream.listen(
-      (purchases) => _onPurchasesUpdated(purchases, userId),
-      onError: (e) {
+      (purchases) => unawaited(_onPurchasesUpdated(purchases, userId)),
+      onError: (Object e) {
         _error = e.toString();
         notifyListeners();
       },
     );
 
     await _loadPremiumFromFirestore(userId);
-    // Restore to sync with app store on every app start
-    restorePurchases(userId: userId);
+    // Restore to sync with the store on every app start.
+    await restorePurchases(userId: userId);
   }
 
   Future<void> _loadPremiumFromFirestore(String userId) async {
@@ -78,12 +84,19 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   Future<void> _savePremiumToFirestore(String userId) async {
+    // setPremium resolves the uid from the auth context server-side; the
+    // userId parameter is only used by the caller to scope its own state.
     try {
-      // setPremium uses context.auth.uid server-side — userId param
-      // is for the current authenticated user only
-      await FirebaseFunctions.instance.httpsCallable('setPremium')();
+      await FirebaseFunctions.instance
+          .httpsCallable('setPremium')
+          .call<Map<String, dynamic>>();
     } catch (e) {
-      // Cloud Function call failed (offline or rules) — cache in memory only
+      // The grant did not land. Previously _isPremium was set regardless of
+      // whether this threw, so cancelling a purchase offline handed out
+      // premium for free. Surface it and leave entitlement unchanged.
+      _error = 'Could not confirm your purchase. It will retry on next launch.';
+      notifyListeners();
+      return;
     }
     _isPremium = true;
     notifyListeners();
@@ -108,17 +121,49 @@ class SubscriptionService extends ChangeNotifier {
     }
   }
 
-  void _onPurchasesUpdated(List<PurchaseDetails> purchases, String userId) {
+  Future<void> _onPurchasesUpdated(
+    List<PurchaseDetails> purchases,
+    String userId,
+  ) async {
     for (final purchase in purchases) {
-      if (purchase.status == PurchaseStatus.purchased) {
-        _purchased.add(purchase.productID);
-        InAppPurchase.instance.completePurchase(purchase);
-        _savePremiumToFirestore(userId);
-      } else if (purchase.status == PurchaseStatus.error) {
-        _error = purchase.error.toString();
-        notifyListeners();
+      switch (purchase.status) {
+        case PurchaseStatus.pending:
+          // Slow payment methods (bank transfer, cash) sit here for hours.
+          // Previously this fell through and the purchase silently vanished.
+          _pending = true;
+          _error = null;
+          notifyListeners();
+
+        case PurchaseStatus.purchased:
+        case PurchaseStatus.restored:
+          _pending = false;
+          _purchased.add(purchase.productID);
+          await _savePremiumToFirestore(userId);
+
+        case PurchaseStatus.error:
+          _pending = false;
+          _error = _friendlyPurchaseError(purchase.error);
+          notifyListeners();
+
+        case PurchaseStatus.canceled:
+          _pending = false;
+          _error = null;
+          notifyListeners();
+      }
+
+      // Must happen for every terminal status or the store replays the
+      // purchase on every launch.
+      if (purchase.pendingCompletePurchase) {
+        await InAppPurchase.instance.completePurchase(purchase);
       }
     }
+  }
+
+  /// Store errors are not user-facing copy; previously `error.toString()` was
+  /// rendered directly as the paywall's subtitle.
+  String _friendlyPurchaseError(IAPError? error) {
+    if (error == null) return 'Your purchase could not be completed.';
+    return 'Your purchase could not be completed (${error.code}).';
   }
 
   Future<void> restorePurchases({String? userId}) async {
@@ -136,7 +181,7 @@ class SubscriptionService extends ChangeNotifier {
 
   @override
   void dispose() {
-    _subscription?.cancel();
+    unawaited(_subscription?.cancel() ?? Future<void>.value());
     super.dispose();
   }
 
