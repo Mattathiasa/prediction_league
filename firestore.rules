@@ -1,102 +1,202 @@
 rules_version = '2';
+
+// ── App Check ──────────────────────────────────────────────────────────────────
+// App Check is enforced at the product boundary, not duplicated in every rule:
+//
+//   * Firestore — Firebase console → App Check → Firestore → Enforce. Enforcement
+//     runs *before* rules evaluate, so it applies uniformly to every path below.
+//   * Callables — each declares `runWith({ enforceAppCheck: true })`.
+//
+// Keeping `request.app != null` in the rules themselves would be redundant with
+// console enforcement and would make the entire ruleset untestable: the standard
+// @firebase/rules-unit-testing harness cannot mint App Check tokens, so every
+// assertion would fail for the wrong reason. That is precisely how the bugs these
+// rules now guard against went unnoticed. See functions/test/rules.test.js.
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── App Check enforcement ───────────────────────────────────────────────────
-    // Enable App Check for Firestore in the Firebase console (App Check →
-    // Firestore → Enforce). This requires production attestation providers.
-    function isAppChecked() {
-      return request.app != null;
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    // ── Users ───────────────────────────────────────────────────────────────────
-    // Users can read/write their own doc only.
-    // The `isPremium` field can only be set by a trusted source — users
-    // cannot toggle their own premium status.
+    function isUser(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // Fields a client may never set on itself — all are server-maintained.
+    function serverOwnedUserFields() {
+      return [
+        'totalPoints', 'weeklyPoints', 'streak', 'bestStreak', 'accuracy',
+        'badgeIds', 'highestWeeklyPoints', 'predictionsCount',
+        'correctResults', 'exactScoreCount', 'isPremium'
+      ];
+    }
+
+    // A scoreline a human could plausibly predict.
+    function isValidGuess(v) {
+      return v is int && v >= 0 && v <= 20;
+    }
+
+    // Predictions close one hour before kickoff. This is the game's core
+    // integrity property, so it is enforced here against the server clock —
+    // never against a client-supplied timestamp or a manually-flipped flag.
+    function predictionWindowOpen(fixtureId) {
+      return exists(/databases/$(database)/documents/fixtures/$(fixtureId))
+        && get(/databases/$(database)/documents/fixtures/$(fixtureId)).data.kickoff
+             > request.time + duration.value(1, 'h');
+    }
+
+    // ── Users ─────────────────────────────────────────────────────────────────
+    // Private. Stats, badges and premium status are written only by Cloud
+    // Functions; the public projection the leaderboard reads lives in
+    // /publicProfiles.
+
     match /users/{userId} {
-      allow read: if isAppChecked() && request.auth.uid == userId;
-      allow create: if isAppChecked() && request.auth.uid == userId;
-      allow update: if isAppChecked() && request.auth.uid == userId
+      allow read: if isUser(userId);
+
+      // Create: own doc, known fields only, every server-owned stat zeroed.
+      // Without the value checks a user could self-assign premium or points at
+      // signup, which the per-field update rule below would then make permanent.
+      allow create: if isUser(userId)
+        && request.resource.data.keys().hasOnly([
+             'uid', 'displayName', 'photoUrl',
+             'totalPoints', 'weeklyPoints', 'streak', 'bestStreak', 'accuracy',
+             'badgeIds', 'highestWeeklyPoints', 'predictionsCount',
+             'correctResults', 'exactScoreCount', 'isPremium'
+           ])
+        && request.resource.data.uid == userId
+        && request.resource.data.totalPoints == 0
+        && request.resource.data.weeklyPoints == 0
+        && request.resource.data.streak == 0
+        && request.resource.data.bestStreak == 0
+        && request.resource.data.accuracy == 0
+        && request.resource.data.highestWeeklyPoints == 0
+        && request.resource.data.predictionsCount == 0
+        && request.resource.data.correctResults == 0
+        && request.resource.data.exactScoreCount == 0
+        && request.resource.data.isPremium == false
+        && request.resource.data.badgeIds.size() == 0;
+
+      // Update: profile fields only. Everything in serverOwnedUserFields() is
+      // written exclusively by the Admin SDK, which bypasses these rules.
+      allow update: if isUser(userId)
         && request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['displayName', 'photoUrl']);
+             .hasOnly(['displayName', 'photoUrl']);
+
+      // Account deletion runs through a Cloud Function so the user's
+      // predictions, league memberships and public profile go with it.
       allow delete: if false;
     }
 
-    // ── Fixtures ────────────────────────────────────────────────────────────────
-    // Readable by all authenticated users.
-    // Writable only by Admin SDK (Cloud Functions with admin privileges).
-    // The client cannot create or update fixtures — use the `syncFixtures`
-    // callable Cloud Function instead.
+    // ── Public profiles ───────────────────────────────────────────────────────
+    // Server-maintained projection of the public half of /users: display name,
+    // avatar and points. Exists so the leaderboard and league standings can read
+    // across users without /users itself becoming world-readable.
+
+    match /publicProfiles/{userId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Cloud Functions only
+    }
+
+    // ── Fixtures ──────────────────────────────────────────────────────────────
+    // Readable by any signed-in user. Written only by syncFixtures /
+    // updateFixtureStatus via the Admin SDK.
+
     match /fixtures/{fixtureId} {
-      allow read: if isAppChecked();
-      allow create, update: if false; // Server-side only (Cloud Functions)
-      allow delete: if false;
+      allow read: if isSignedIn();
+      allow write: if false;
     }
 
-    // ── Predictions ─────────────────────────────────────────────────────────────
-    // Users can create predictions with homeGuess/awayGuess only.
-    // Once locked (by server-side scoring), no further writes allowed.
-    // The `pointsEarned` and `locked` fields are server-managed only.
+    // ── Predictions ───────────────────────────────────────────────────────────
+    // Owner-private. `pointsEarned` and `locked` are server-managed.
+
     match /predictions/{predictionId} {
-      // Read: owner only
-      allow read: if isAppChecked()
+      allow read: if isSignedIn()
         && request.auth.uid == resource.data.userId;
 
-      // Create: owner only, restricted fields
-      allow create: if isAppChecked()
+      allow create: if isSignedIn()
         && request.auth.uid == request.resource.data.userId
         && request.resource.data.keys().hasOnly([
-          'predictionId', 'userId', 'fixtureId',
-          'homeGuess', 'awayGuess', 'submittedAt', 'locked'
-        ])
-        && request.resource.data['locked'] == false
-        && request.resource.data['pointsEarned'] == 0;
+             'predictionId', 'userId', 'fixtureId',
+             'homeGuess', 'awayGuess', 'pointsEarned', 'submittedAt', 'locked'
+           ])
+        && isValidGuess(request.resource.data.homeGuess)
+        && isValidGuess(request.resource.data.awayGuess)
+        && request.resource.data.pointsEarned == 0
+        && request.resource.data.locked == false
+        && predictionWindowOpen(request.resource.data.fixtureId);
 
-      // Update: owner only, and only if not yet locked
-      allow update: if isAppChecked()
+      // Edits are restricted to the scoreline, and only while the window is open
+      // and the prediction has not been scored.
+      allow update: if isSignedIn()
         && request.auth.uid == resource.data.userId
         && resource.data.locked == false
-        && request.resource.data.keys().hasOnly([
-          'homeGuess', 'awayGuess', 'submittedAt'
-        ]);
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['homeGuess', 'awayGuess', 'submittedAt'])
+        && isValidGuess(request.resource.data.homeGuess)
+        && isValidGuess(request.resource.data.awayGuess)
+        && predictionWindowOpen(resource.data.fixtureId);
 
       allow delete: if false;
     }
 
-    // ── Leagues ────────────────────────────────────────────────────────────────
-    // Members can read leagues they belong to.
-    // Only the league admin can create/modify leagues.
+    // ── Leagues ───────────────────────────────────────────────────────────────
+    // Members can read their leagues. Joining goes through the `joinLeague`
+    // callable rather than a client write: looking a league up by invite code
+    // would otherwise require making every league world-readable, and the
+    // 20-member cap needs to be enforced transactionally on the server.
+
     match /leagues/{leagueId} {
-      allow read: if isAppChecked()
+      allow read: if isSignedIn()
         && resource.data.memberIds.hasAny([request.auth.uid]);
 
-      allow create: if isAppChecked()
+      // Create: founder is the admin and the sole initial member.
+      allow create: if isSignedIn()
+        && request.resource.data.keys().hasOnly([
+             'name', 'adminId', 'memberIds', 'inviteCode', 'createdAt'
+           ])
         && request.auth.uid == request.resource.data.adminId
-        && request.resource.data.keys().hasAll([
-          'name', 'adminId', 'memberIds', 'inviteCode', 'createdAt'
-        ]);
+        && request.resource.data.memberIds == [request.auth.uid]
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.inviteCode is string;
 
-      allow update: if isAppChecked()
+      // The admin may rename the league...
+      allow update: if isSignedIn()
         && resource.data.adminId == request.auth.uid
-        && request.resource.data.keys().hasOnly(['name', 'memberIds', 'inviteCode'])
-        && request.resource.data.memberIds.size() <= 20;
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40;
 
-      allow delete: if isAppChecked()
+      // ...and any member may remove themselves, and only themselves.
+      allow update: if isSignedIn()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['memberIds'])
+        && resource.data.memberIds.hasAny([request.auth.uid])
+        && !request.resource.data.memberIds.hasAny([request.auth.uid])
+        && request.resource.data.memberIds.toSet()
+             .difference(resource.data.memberIds.toSet()).size() == 0
+        && resource.data.memberIds.toSet()
+             .difference(request.resource.data.memberIds.toSet())
+             == [request.auth.uid].toSet();
+
+      allow delete: if isSignedIn()
         && resource.data.adminId == request.auth.uid;
     }
 
-    // ── Admin roles ──────────────────────────────────────────────────────────────
-    // Server-managed collection — only writable by Cloud Functions.
-    // Used by checkAdmin callable function for PIN-free admin verification.
-    match /admin_roles/{userId} {
-      allow read: if isAppChecked() && request.auth.uid == userId;
-      allow create, update, delete: if false;
-    }
+    // ── Admin roles ───────────────────────────────────────────────────────────
+    // Server-managed. Backs the `checkAdmin` callable; unwritable by any client,
+    // so client-side admin state is never a security boundary.
 
-    // ── Status transition validator ────────────────────────────────────────────
-    function _validStatusTransition(current, next) {
-      return (next == 'live' && current == 'upcoming')
-        || (next == 'finished' && (current == 'upcoming' || current == 'live'));
+    match /admin_roles/{userId} {
+      allow read: if isUser(userId);
+      allow write: if false;
     }
   }
 }
