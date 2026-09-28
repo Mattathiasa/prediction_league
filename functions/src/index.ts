@@ -172,8 +172,9 @@ export const syncFixtures = functions
 
 // ── Callable: checkAdmin ────────────────────────────────────────────────────────
 
-export const checkAdmin = functions.https.onCall(
-  async (data, context) => {
+export const checkAdmin = functions
+  .runWith({ enforceAppCheck: true })
+  .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
@@ -188,15 +189,129 @@ export const checkAdmin = functions.https.onCall(
       .get();
 
     return { isAdmin: adminDoc.exists && adminDoc.data()?.isAdmin === true };
-  }
-);
+  });
+
+// ── Callable: joinLeague ────────────────────────────────────────────────────────
+// Joining runs here rather than as a client write for two reasons: looking a
+// league up by invite code would otherwise require making every league
+// world-readable, and the member cap has to be checked and applied in the same
+// transaction or two simultaneous joins can both pass a 19/20 check.
+
+const MAX_LEAGUE_MEMBERS = 20;
+
+export const joinLeague = functions
+  .runWith({ enforceAppCheck: true })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Sign in required'
+      );
+    }
+
+    const raw = typeof data?.inviteCode === 'string' ? data.inviteCode : '';
+    const inviteCode = raw.trim().toUpperCase();
+    if (!/^[A-Z0-9]{6}$/.test(inviteCode)) {
+      throw new functions.https.HttpsError(
+        'invalid-argument',
+        'Invite codes are 6 letters or digits'
+      );
+    }
+
+    const userId = context.auth.uid;
+
+    const matches = await db
+      .collection('leagues')
+      .where('inviteCode', '==', inviteCode)
+      .limit(1)
+      .get();
+
+    if (matches.empty) {
+      throw new functions.https.HttpsError(
+        'not-found',
+        'No league found with that code'
+      );
+    }
+
+    const leagueRef = matches.docs[0].ref;
+
+    const leagueId = await db.runTransaction(async (tx) => {
+      const snap = await tx.get(leagueRef);
+      if (!snap.exists) {
+        throw new functions.https.HttpsError('not-found', 'League no longer exists');
+      }
+
+      const memberIds: string[] = snap.data()?.memberIds ?? [];
+      if (memberIds.includes(userId)) return snap.id;
+
+      if (memberIds.length >= MAX_LEAGUE_MEMBERS) {
+        throw new functions.https.HttpsError(
+          'resource-exhausted',
+          `This league is full (${MAX_LEAGUE_MEMBERS} members)`
+        );
+      }
+
+      tx.update(leagueRef, {
+        memberIds: admin.firestore.FieldValue.arrayUnion(userId),
+      });
+      return snap.id;
+    });
+
+    return { leagueId };
+  });
+
+// ── Trigger: keep /publicProfiles in step with /users ───────────────────────────
+// /users is private, but the leaderboard and league standings need to read name,
+// avatar and points across users. This mirrors just that public subset so those
+// queries never require opening up /users itself.
+
+export const syncPublicProfile = functions.firestore
+  .document('users/{userId}')
+  .onWrite(async (change, context) => {
+    const { userId } = context.params;
+    const profileRef = db.collection('publicProfiles').doc(userId);
+
+    if (!change.after.exists) {
+      await profileRef.delete();
+      return;
+    }
+
+    const user = change.after.data()!;
+    const before = change.before.data();
+
+    // Only the projected fields matter — skip writes that can't change it.
+    const projection = {
+      displayName: user.displayName ?? '',
+      photoUrl: user.photoUrl ?? '',
+      totalPoints: user.totalPoints ?? 0,
+      weeklyPoints: user.weeklyPoints ?? 0,
+      badgeIds: user.badgeIds ?? [],
+      isPremium: user.isPremium === true,
+    };
+
+    if (
+      before &&
+      before.displayName === projection.displayName &&
+      before.photoUrl === projection.photoUrl &&
+      before.totalPoints === projection.totalPoints &&
+      before.weeklyPoints === projection.weeklyPoints &&
+      before.isPremium === projection.isPremium &&
+      JSON.stringify(before.badgeIds ?? []) ===
+        JSON.stringify(projection.badgeIds)
+    ) {
+      return;
+    }
+
+    await profileRef.set(projection, { merge: true });
+  });
 
 // ── Callable: setPremium ────────────────────────────────────────────────────────
 // Server-side write for isPremium (prevents client spoofing).
 // Only ever sets isPremium: true — revocation must happen server-side.
 
-export const setPremium = functions.https.onCall(
-  async (data, context) => {
+export const setPremium = functions
+  .runWith({ enforceAppCheck: true })
+  .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
@@ -218,8 +333,78 @@ export const setPremium = functions.https.onCall(
 
 // ── Callable: scoreFixtureResults ─────────────────────────────────────────────
 
-export const scoreFixtureResults = functions.https.onCall(
-  async (data, context) => {
+const BADGE_FIRST_KICK = 'first_kick';
+const BADGE_ON_FIRE = 'on_fire';
+const BADGE_SNIPER = 'sniper';
+const ON_FIRE_STREAK = 5;
+
+// Firestore caps a WriteBatch at 500 operations. Scoring writes two documents
+// per prediction (the prediction and its author), so a fixture with more than
+// ~249 predictions used to blow the limit and throw — the function was capped
+// at roughly 250 players.
+const BATCH_LIMIT = 500;
+
+/**
+ * Applies writes in batches that respect Firestore's 500-op limit.
+ * Ops are applied in order, so callers can rely on earlier chunks landing first.
+ */
+async function commitInChunks(
+  ops: Array<(batch: admin.firestore.WriteBatch) => void>
+): Promise<void> {
+  for (let i = 0; i < ops.length; i += BATCH_LIMIT) {
+    const batch = db.batch();
+    for (const op of ops.slice(i, i + BATCH_LIMIT)) op(batch);
+    await batch.commit();
+  }
+}
+
+/** Throws unless `value` is an integer goal tally a real match could produce. */
+function requireScore(value: unknown, field: string): number {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value < 0 || value > 20) {
+    throw new functions.https.HttpsError(
+      'invalid-argument',
+      `${field} must be an integer between 0 and 20`
+    );
+  }
+  return value;
+}
+
+/**
+ * Recomputes the badges a user has earned from their full scored history.
+ * Derived rather than incremented so a re-run cannot double-award.
+ */
+function earnedBadges(
+  predictions: admin.firestore.QueryDocumentSnapshot[]
+): string[] {
+  if (predictions.length === 0) return [];
+
+  const ordered = [...predictions].sort(
+    (a, b) =>
+      (a.data().submittedAt?.toMillis() ?? 0) -
+      (b.data().submittedAt?.toMillis() ?? 0)
+  );
+
+  const badges = [BADGE_FIRST_KICK];
+
+  if (ordered.some((p) => (p.data().pointsEarned ?? 0) === 5)) {
+    badges.push(BADGE_SNIPER);
+  }
+
+  let streak = 0;
+  for (const p of ordered) {
+    streak = (p.data().pointsEarned ?? 0) > 0 ? streak + 1 : 0;
+    if (streak >= ON_FIRE_STREAK) {
+      badges.push(BADGE_ON_FIRE);
+      break;
+    }
+  }
+
+  return badges;
+}
+
+export const scoreFixtureResults = functions
+  .runWith({ enforceAppCheck: true })
+  .https.onCall(async (data, context) => {
     if (!context.auth) {
       throw new functions.https.HttpsError(
         'unauthenticated',
@@ -227,7 +412,6 @@ export const scoreFixtureResults = functions.https.onCall(
       );
     }
 
-    // Verify admin via admin_roles collection
     const adminDoc = await db
       .collection('admin_roles')
       .doc(context.auth.uid)
@@ -239,23 +423,26 @@ export const scoreFixtureResults = functions.https.onCall(
       );
     }
 
-    const fixtureId: string = data.fixtureId;
-    const homeScore: number = data.homeScore;
-    const awayScore: number = data.awayScore;
-    const currentUserId: string = data.currentUserId || '';
-
-    // Idempotency guard: skip if fixture is already scored
-    const fixtureSnap = await db.collection('fixtures').doc(fixtureId).get();
-    if (!fixtureSnap.exists) {
+    // Validate before touching anything. `as number` is erased at runtime, so
+    // the previous version happily fed NaN or a string into FieldValue.increment
+    // and corrupted totalPoints with no way back.
+    if (typeof data?.fixtureId !== 'string' || data.fixtureId.length === 0) {
       throw new functions.https.HttpsError(
-        'not-found',
-        'Fixture not found'
+        'invalid-argument',
+        'fixtureId is required'
       );
     }
+    const fixtureId: string = data.fixtureId;
+    const homeScore = requireScore(data.homeScore, 'homeScore');
+    const awayScore = requireScore(data.awayScore, 'awayScore');
 
-    // Idempotency guard: skip if fixture is already scored
-    const fixtureData = fixtureSnap.data();
-    if (fixtureData?.status === 'finished') {
+    const fixtureSnap = await db.collection('fixtures').doc(fixtureId).get();
+    if (!fixtureSnap.exists) {
+      throw new functions.https.HttpsError('not-found', 'Fixture not found');
+    }
+
+    const fixtureData = fixtureSnap.data()!;
+    if (fixtureData.status === 'finished') {
       return {
         skipped: true,
         message: 'Fixture already scored',
@@ -263,82 +450,104 @@ export const scoreFixtureResults = functions.https.onCall(
       };
     }
 
-    // Update fixture with final score
-    const batch = db.batch();
-    batch.update(fixtureSnap.ref as any, {
-      homeScore,
-      awayScore,
-      status: 'finished',
-    });
-
-    // Score all predictions for this fixture
     const predSnap = await db
       .collection('predictions')
       .where('fixtureId', '==', fixtureId)
       .get();
 
     const predictedUids = new Set<string>();
-    let currentUserPoints: number | null = null;
+    const pointsByUser = new Map<string, number>();
 
     for (const doc of predSnap.docs) {
       const pred = doc.data();
       const userId: string = pred.userId;
       predictedUids.add(userId);
-
-      const homeGuess = pred.homeGuess as number;
-      const awayGuess = pred.awayGuess as number;
-      const points = calculatePoints(
-        homeGuess,
-        awayGuess,
-        homeScore,
-        awayScore
+      pointsByUser.set(
+        userId,
+        calculatePoints(pred.homeGuess, pred.awayGuess, homeScore, awayScore)
       );
-
-      batch.update(doc.ref as any, {
-        pointsEarned: points,
-        locked: true,
-      });
-
-      batch.update(db.collection('users').doc(userId), {
-        totalPoints: admin.firestore.FieldValue.increment(points),
-        weeklyPoints: admin.firestore.FieldValue.increment(points),
-      });
-
-      if (userId === currentUserId) {
-        currentUserPoints = points;
-      }
     }
 
-    // -1 for users who didn't predict AND signed up before kickoff
-    // (new users after kickoff shouldn't get penalized)
+    // ── 1. Score the predictions and credit their authors ────────────────────
+    const scoringOps: Array<(b: admin.firestore.WriteBatch) => void> = [];
+
+    for (const doc of predSnap.docs) {
+      const points = pointsByUser.get(doc.data().userId)!;
+      scoringOps.push((b) =>
+        b.update(doc.ref, { pointsEarned: points, locked: true })
+      );
+    }
+
+    // /publicProfiles is not written here — the syncPublicProfile trigger
+    // mirrors these increments. Writing both would double-count.
+    for (const [userId, points] of pointsByUser) {
+      scoringOps.push((b) =>
+        b.update(db.collection('users').doc(userId), {
+          totalPoints: admin.firestore.FieldValue.increment(points),
+          weeklyPoints: admin.firestore.FieldValue.increment(points),
+        })
+      );
+    }
+
+    await commitInChunks(scoringOps);
+
+    // ── 2. Penalise users who were signed up at kickoff but didn't predict ───
     const usersSnap = await db.collection('users').get();
-    const fixtureKickoff = fixtureData!.kickoff.toDate();
-    for (let i = 0; i < usersSnap.docs.length; i += 500) {
-      const batch2 = db.batch();
-      const end = Math.min(i + 500, usersSnap.docs.length);
-      for (let j = i; j < end; j++) {
-        const userDoc = usersSnap.docs[j];
-        if (!predictedUids.has(userDoc.id)) {
-          // Check if user was created before this fixture's kickoff
-          const userData = userDoc.data();
-          // Users without an explicit createdAt are old users — apply penalty
-          const userCreatedAt = userData.createdAt?.toDate();
-          if (!userCreatedAt || userCreatedAt.getTime() < fixtureKickoff.getTime()) {
-            batch2.update(userDoc.ref as any, {
-              totalPoints: admin.firestore.FieldValue.increment(-1),
-              weeklyPoints: admin.firestore.FieldValue.increment(-1),
-            });
-          }
-        }
-      }
-      await batch2.commit();
+    const kickoff: Date = fixtureData.kickoff.toDate();
+    const penaltyOps: Array<(b: admin.firestore.WriteBatch) => void> = [];
+
+    for (const userDoc of usersSnap.docs) {
+      if (predictedUids.has(userDoc.id)) continue;
+
+      // Users created after kickoff can't be penalised for missing it.
+      const createdAt = userDoc.data().createdAt?.toDate();
+      if (createdAt && createdAt.getTime() >= kickoff.getTime()) continue;
+
+      penaltyOps.push((b) =>
+        b.update(userDoc.ref, {
+          totalPoints: admin.firestore.FieldValue.increment(-1),
+          weeklyPoints: admin.firestore.FieldValue.increment(-1),
+        })
+      );
     }
 
-    await batch.commit();
+    await commitInChunks(penaltyOps);
 
-    return { pointsEarned: currentUserPoints };
-  }
-);
+    // ── 3. Award badges ──────────────────────────────────────────────────────
+    // Derived from each author's full scored history rather than incremented,
+    // so re-running this function cannot double-award. Previously this ran on
+    // the client, where the rules denied the write every time.
+    await Promise.all(
+      [...predictedUids].map(async (userId) => {
+        const history = await db
+          .collection('predictions')
+          .where('userId', '==', userId)
+          .where('locked', '==', true)
+          .get();
+        const badges = earnedBadges(history.docs);
+        if (badges.length === 0) return;
+        await db
+          .collection('users')
+          .doc(userId)
+          .update({
+            badgeIds: admin.firestore.FieldValue.arrayUnion(...badges),
+          });
+      })
+    );
+
+    // ── 4. Mark the fixture finished, last ───────────────────────────────────
+    // This is what the idempotency guard above reads. Committing it last means
+    // a failure anywhere earlier leaves the fixture unscored and the whole
+    // operation safely repeatable — the previous ordering committed penalties
+    // first, so a retry after a failure docked non-predictors twice.
+    await fixtureSnap.ref.update({
+      homeScore,
+      awayScore,
+      status: 'finished',
+    });
+
+    return { pointsEarned: pointsByUser.get(context.auth.uid) ?? null };
+  });
 
 // ── Pure scoring logic (mirrors client-side ScoringService) ───────────────────
 
@@ -386,23 +595,51 @@ export const updateFixtureStatus = functions
         `competitions/${COMPETITION}/matches?status=FINISHED,IN_PLAY,PAUSED,HALFTIME&limit=100`
       );
 
+      const incoming = (liveFinished.matches || []).map(parseFixture);
+      if (incoming.length === 0) {
+        console.log('No live or finished fixtures to update');
+        return null;
+      }
+
+      // Read current state first and write only what actually changed. This runs
+      // 79 times a day; blind set+merge rewrote up to 100 documents every run,
+      // and each rewrite fans out to every connected client's fixture listener.
+      const existing = await db.getAll(
+        ...incoming.map((f: ApiFixture) =>
+          db.collection('fixtures').doc(f.fixtureId)
+        )
+      );
+      const current = new Map(
+        existing.map((snap) => [snap.id, snap.exists ? snap.data() : undefined])
+      );
+
       const batch = db.batch();
       let updated = 0;
 
-      for (const raw of liveFinished.matches || []) {
-        const fixture = parseFixture(raw);
-        const docRef = db.collection('fixtures').doc(fixture.fixtureId);
+      for (const fixture of incoming) {
+        const prev = current.get(fixture.fixtureId);
+        const unchanged =
+          prev &&
+          prev.status === fixture.status &&
+          prev.homeScore === fixture.homeScore &&
+          prev.awayScore === fixture.awayScore;
+        if (unchanged) continue;
+
         // set+merge handles docs that don't exist yet (e.g. first run before syncFixtures)
-        batch.set(docRef, {
-          fixtureId: fixture.fixtureId,
-          homeTeam: fixture.homeTeam,
-          awayTeam: fixture.awayTeam,
-          kickoff: fixture.kickoff,
-          competition: fixture.competition,
-          status: fixture.status,
-          homeScore: fixture.homeScore,
-          awayScore: fixture.awayScore,
-        }, { merge: true });
+        batch.set(
+          db.collection('fixtures').doc(fixture.fixtureId),
+          {
+            fixtureId: fixture.fixtureId,
+            homeTeam: fixture.homeTeam,
+            awayTeam: fixture.awayTeam,
+            kickoff: fixture.kickoff,
+            competition: fixture.competition,
+            status: fixture.status,
+            homeScore: fixture.homeScore,
+            awayScore: fixture.awayScore,
+          },
+          { merge: true }
+        );
         updated++;
       }
 
@@ -410,10 +647,9 @@ export const updateFixtureStatus = functions
         await batch.commit();
       }
 
-      // Recalculate user stats for all affected users
-      // (handled by client-side listener on fixtures stream)
-
-      console.log(`Updated ${updated} fixture statuses`);
+      console.log(
+        `Checked ${incoming.length} fixtures, wrote ${updated} changed`
+      );
     } catch (error: any) {
       console.error('Fixture status update failed:', error);
     }
