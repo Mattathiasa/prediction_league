@@ -6,6 +6,7 @@ import '../models/prediction_model.dart';
 import '../providers/prediction_provider.dart';
 import '../services/fixture_service.dart';
 import '../services/scoring_service.dart';
+import '../theme/app_colors.dart';
 
 class ResultsScreen extends StatelessWidget {
   const ResultsScreen({super.key});
@@ -13,9 +14,9 @@ class ResultsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Results',
@@ -29,7 +30,7 @@ class ResultsScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+                child: CircularProgressIndicator(color: AppColors.accent));
           }
 
           final fixtures = snapshot.data ?? [];
@@ -97,7 +98,7 @@ class _SummaryBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D2137)],
+          colors: [AppColors.gradientStart, AppColors.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -135,7 +136,7 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(value,
             style: TextStyle(
-                color: highlight ? const Color(0xFF4CAF50) : Colors.white,
+                color: highlight ? AppColors.accent : Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
@@ -163,7 +164,7 @@ class _ResultCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
@@ -186,7 +187,7 @@ class _ResultCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D2137),
+                  color: AppColors.gradientEnd,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(

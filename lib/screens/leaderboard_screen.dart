@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
+import '../widgets/user_avatar.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -33,9 +34,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     final currentUserId = context.read<AuthService>().userModel!.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -45,9 +46,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF4CAF50),
+          labelColor: AppColors.accent,
           unselectedLabelColor: Colors.white38,
-          indicatorColor: const Color(0xFF4CAF50),
+          indicatorColor: AppColors.accent,
           indicatorSize: TabBarIndicatorSize.label,
           tabs: const [
             Tab(text: 'All Time'),
@@ -97,7 +98,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+              child: CircularProgressIndicator(color: AppColors.accent));
         }
 
         if (snapshot.hasError) {
@@ -170,17 +171,16 @@ class _RankCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pts =
         sortField == 'weeklyPoints' ? user.weeklyPoints : user.totalPoints;
-    final rankCol = _rankColor(rank);
+    final rankCol = AppColors.forRank(rank);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color:
-            isCurrentUser ? const Color(0xFF1E3A5F) : const Color(0xFF1A1A2E),
+        color: isCurrentUser ? AppColors.gradientStart : AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isCurrentUser
-              ? const Color(0xFF4CAF50).withValues(alpha: 0.45)
+              ? AppColors.accent.withValues(alpha: 0.45)
               : Colors.white.withValues(alpha: 0.05),
         ),
       ),
@@ -202,7 +202,7 @@ class _RankCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           // Avatar
-          _MiniAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
+          UserAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
           const SizedBox(width: 12),
           // Name + accuracy
           Expanded(
@@ -212,8 +212,7 @@ class _RankCard extends StatelessWidget {
                 Row(
                   children: [
                     if (user.isPremium)
-                      const Icon(Icons.star,
-                          color: Color(0xFFFFD700), size: 12),
+                      const Icon(Icons.star, color: AppColors.gold, size: 12),
                     if (user.isPremium) const SizedBox(width: 4),
                     Text(
                       isCurrentUser
@@ -250,53 +249,9 @@ class _RankCard extends StatelessWidget {
       ),
     );
   }
-
-  Color _rankColor(int r) {
-    if (r == 1) return const Color(0xFFFFD700);
-    if (r == 2) return const Color(0xFFBDBDBD);
-    if (r == 3) return const Color(0xFFCD7F32);
-    return Colors.white70;
-  }
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-
-class _MiniAvatar extends StatelessWidget {
-  final String photoUrl;
-  final String displayName;
-
-  const _MiniAvatar({required this.photoUrl, required this.displayName});
-
-  @override
-  Widget build(BuildContext context) {
-    if (photoUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 18,
-        backgroundColor: const Color(0xFF4CAF50),
-        child: ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: photoUrl,
-            width: 36,
-            height: 36,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => _initials(),
-          ),
-        ),
-      );
-    }
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: const Color(0xFF4CAF50),
-      child: _initials(),
-    );
-  }
-
-  Widget _initials() => Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-      );
-}
 
 // ── Load more button ──────────────────────────────────────────────────────────
 
@@ -309,9 +264,9 @@ class _LoadMoreButton extends StatelessWidget {
     return Center(
       child: TextButton.icon(
         onPressed: onTap,
-        icon: const Icon(Icons.expand_more, color: Color(0xFF4CAF50), size: 18),
+        icon: const Icon(Icons.expand_more, color: AppColors.accent, size: 18),
         label:
-            const Text('Load more', style: TextStyle(color: Color(0xFF4CAF50))),
+            const Text('Load more', style: TextStyle(color: AppColors.accent)),
       ),
     );
   }

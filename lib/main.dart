@@ -15,6 +15,8 @@ import 'services/subscription_service.dart';
 import 'screens/auth_screen.dart';
 import 'screens/verify_email_screen.dart';
 import 'screens/home_screen.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -90,13 +92,7 @@ class PredictionLeagueApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Prediction League',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF4CAF50),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.dark,
         home: const _AuthWrapper(),
       ),
     );
@@ -112,9 +108,9 @@ class _AuthWrapper extends StatelessWidget {
 
     if (!auth.initialized) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+          child: CircularProgressIndicator(color: AppColors.accent),
         ),
       );
     }
@@ -145,7 +141,7 @@ class _StartupErrorScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       body: Center(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -171,7 +167,7 @@ class _StartupErrorScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: AppColors.accent,
                   foregroundColor: Colors.white,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),

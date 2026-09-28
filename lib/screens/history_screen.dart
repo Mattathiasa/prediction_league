@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../providers/prediction_provider.dart';
 import '../services/prediction_service.dart';
 import '../services/scoring_service.dart';
+import '../theme/app_colors.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -13,9 +14,9 @@ class HistoryScreen extends StatelessWidget {
     final userId = context.read<AuthService>().userModel!.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -32,7 +33,7 @@ class HistoryScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+              child: CircularProgressIndicator(color: AppColors.accent),
             );
           }
 
@@ -99,7 +100,7 @@ class _SummaryHeader extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D2137)],
+          colors: [AppColors.gradientStart, AppColors.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -111,17 +112,17 @@ class _SummaryHeader extends StatelessWidget {
           _StatItem(
               label: 'Total Pts',
               value: '$totalPoints',
-              color: const Color(0xFFFFD700),
+              color: AppColors.gold,
               icon: Icons.star_rounded),
           _StatItem(
               label: 'Correct Results',
               value: '$correctResults/${entries.length}',
-              color: const Color(0xFF4CAF50),
+              color: AppColors.accent,
               icon: Icons.track_changes_rounded),
           _StatItem(
               label: 'Exact Scores',
               value: '$exactScores',
-              color: const Color(0xFF29B6F6),
+              color: AppColors.info,
               icon: Icons.emoji_events),
         ],
       ),
@@ -174,7 +175,7 @@ class _HistoryCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
@@ -208,7 +209,7 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
@@ -230,7 +231,7 @@ class _HistoryCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D2137),
+                  color: AppColors.gradientEnd,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -260,7 +261,7 @@ class _HistoryCard extends StatelessWidget {
                   Text(
                     '${prediction.homeGuess} — ${prediction.awayGuess}',
                     style: const TextStyle(
-                        color: Color(0xFF29B6F6),
+                        color: AppColors.info,
                         fontWeight: FontWeight.bold,
                         fontSize: 16),
                   ),

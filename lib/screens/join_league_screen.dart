@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/league_provider.dart';
+import '../theme/app_colors.dart';
 
 class JoinLeagueScreen extends StatefulWidget {
   const JoinLeagueScreen({super.key});
@@ -44,7 +45,7 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Joined the league!'),
-          backgroundColor: Color(0xFF4CAF50),
+          backgroundColor: AppColors.accent,
         ),
       );
     } else {
@@ -61,9 +62,9 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Join a League',
@@ -86,7 +87,7 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
             TextField(
               controller: _codeController,
               style: const TextStyle(
-                color: Color(0xFF4CAF50),
+                color: AppColors.accent,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 8,
@@ -106,13 +107,13 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
                     color: Colors.white12, fontSize: 30, letterSpacing: 8),
                 counterText: '',
                 filled: true,
-                fillColor: const Color(0xFF1A1A2E),
+                fillColor: AppColors.surface,
                 border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
                     borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: Color(0xFF4CAF50))),
+                    borderSide: const BorderSide(color: AppColors.accent)),
               ),
               onSubmitted: (_) => _join(),
             ),
@@ -128,7 +129,7 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
               child: ElevatedButton(
                 onPressed: _joining ? null : _join,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14)),
                 ),

@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/badge_service.dart';
+import '../theme/app_colors.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -13,9 +14,9 @@ class ProfileScreen extends StatelessWidget {
     final user = context.watch<AuthService>().userModel!;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Profile',
@@ -54,7 +55,7 @@ class _ProfileHeader extends StatelessWidget {
         user.photoUrl.isNotEmpty
             ? CircleAvatar(
                 radius: 48,
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.accent,
                 child: ClipOval(
                   child: CachedNetworkImage(
                     imageUrl: user.photoUrl,
@@ -67,7 +68,7 @@ class _ProfileHeader extends StatelessWidget {
               )
             : CircleAvatar(
                 radius: 48,
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.accent,
                 child: _initials(user.displayName),
               ),
         const SizedBox(height: 14),
@@ -87,21 +88,20 @@ class _ProfileHeader extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+              color: AppColors.gold.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                  color: const Color(0xFFFFD700).withValues(alpha: 0.5),
-                  width: 0.5),
+                  color: AppColors.gold.withValues(alpha: 0.5), width: 0.5),
             ),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                Icon(Icons.star, color: AppColors.gold, size: 14),
                 SizedBox(width: 4),
                 Text(
                   'PREMIUM',
                   style: TextStyle(
-                    color: Color(0xFFFFD700),
+                    color: AppColors.gold,
                     fontWeight: FontWeight.bold,
                     fontSize: 11,
                   ),
@@ -113,15 +113,14 @@ class _ProfileHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
-            color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
+            color: AppColors.accent.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
           ),
           child: Text(
             '${user.totalPoints} pts total',
             style: const TextStyle(
-              color: Color(0xFF4CAF50),
+              color: AppColors.accent,
               fontWeight: FontWeight.bold,
               fontSize: 14,
             ),
@@ -149,7 +148,7 @@ class _StatsRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -160,25 +159,25 @@ class _StatsRow extends StatelessWidget {
               label: 'This Week',
               value: '${user.weeklyPoints}',
               icon: Icons.calendar_today_rounded,
-              color: const Color(0xFF29B6F6)),
+              color: AppColors.info),
           _divider(),
           _Stat(
               label: 'Accuracy',
               value: '${user.accuracy.toStringAsFixed(1)}%',
               icon: Icons.track_changes_rounded,
-              color: const Color(0xFF4CAF50)),
+              color: AppColors.accent),
           _divider(),
           _Stat(
               label: 'Best Streak',
               value: '${user.bestStreak}',
               icon: Icons.local_fire_department_rounded,
-              color: const Color(0xFFFF7043)),
+              color: AppColors.live),
           _divider(),
           _Stat(
               label: 'Hot',
               value: '${user.streak}',
               icon: Icons.bolt_rounded,
-              color: const Color(0xFFFFD700)),
+              color: AppColors.gold),
         ],
       ),
     );
@@ -272,7 +271,7 @@ class _BadgeCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
             color: earned

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../models/league_model.dart';
 import '../models/matchup_model.dart';
 import '../models/user_model.dart';
@@ -10,6 +9,8 @@ import '../services/auth_service.dart';
 import '../services/league_service.dart';
 import 'create_league_screen.dart';
 import 'join_league_screen.dart';
+import '../theme/app_colors.dart';
+import '../widgets/user_avatar.dart';
 
 class MyLeagueScreen extends StatefulWidget {
   const MyLeagueScreen({super.key});
@@ -34,9 +35,9 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
         : (leagues.isNotEmpty ? leagues.first : null);
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('My League',
@@ -48,7 +49,7 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
           if (effective != null)
             PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white70),
-              color: const Color(0xFF1A1A2E),
+              color: AppColors.surface,
               onSelected: (v) {
                 if (v == 'join') {
                   Navigator.push(
@@ -88,7 +89,7 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
       ),
       body: leagueProvider.isLoading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)))
+              child: CircularProgressIndicator(color: AppColors.accent))
           : effective == null
               ? _EmptyLeague(currentUserId: currentUser.uid)
               : Column(
@@ -155,7 +156,7 @@ class _EmptyLeague extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const CreateLeagueScreen()),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -175,8 +176,8 @@ class _EmptyLeague extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => const JoinLeagueScreen()),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF4CAF50),
-                  side: const BorderSide(color: Color(0xFF4CAF50), width: 0.8),
+                  foregroundColor: AppColors.accent,
+                  side: const BorderSide(color: AppColors.accent, width: 0.8),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
@@ -209,14 +210,14 @@ class _LeaguePicker extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<LeagueModel>(
           value: selected,
           isExpanded: true,
-          dropdownColor: const Color(0xFF1A1A2E),
+          dropdownColor: AppColors.surface,
           iconEnabledColor: Colors.white38,
           items: leagues
               .map((l) => DropdownMenuItem(
@@ -247,7 +248,7 @@ class _LeagueHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D2137)],
+          colors: [AppColors.gradientStart, AppColors.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -255,7 +256,7 @@ class _LeagueHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.shield_outlined, color: Color(0xFF4CAF50), size: 28),
+          const Icon(Icons.shield_outlined, color: AppColors.accent, size: 28),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -287,10 +288,10 @@ class _LeagueHeader extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+                color: AppColors.accent.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
+                border:
+                    Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -298,7 +299,7 @@ class _LeagueHeader extends StatelessWidget {
                   Text(
                     league.inviteCode,
                     style: const TextStyle(
-                      color: Color(0xFF4CAF50),
+                      color: AppColors.accent,
                       fontWeight: FontWeight.bold,
                       fontSize: 13,
                       fontFamily: 'monospace',
@@ -306,7 +307,7 @@ class _LeagueHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 5),
-                  const Icon(Icons.copy, size: 13, color: Color(0xFF4CAF50)),
+                  const Icon(Icons.copy, size: 13, color: AppColors.accent),
                 ],
               ),
             ),
@@ -336,7 +337,7 @@ class _WeeklyMatchups extends StatelessWidget {
                     width: 20,
                     height: 20,
                     child: CircularProgressIndicator(
-                        color: Color(0xFF4CAF50), strokeWidth: 2))),
+                        color: AppColors.accent, strokeWidth: 2))),
           );
         }
 
@@ -392,13 +393,14 @@ class _MatchupCard extends StatelessWidget {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         ),
         child: Row(
           children: [
-            _MiniAvatar(
+            UserAvatar(
+                radius: 16,
                 photoUrl: matchup.home.photoUrl,
                 displayName: matchup.home.displayName),
             const SizedBox(width: 10),
@@ -416,14 +418,13 @@ class _MatchupCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFFFFD700).withValues(alpha: 0.12),
+                color: AppColors.gold.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(
-                    color: const Color(0xFFFFD700).withValues(alpha: 0.45),
-                    width: 0.5),
+                    color: AppColors.gold.withValues(alpha: 0.45), width: 0.5),
               ),
               child: const Text('WON',
-                  style: TextStyle(color: Color(0xFFFFD700), fontSize: 10)),
+                  style: TextStyle(color: AppColors.gold, fontSize: 10)),
             ),
           ],
         ),
@@ -433,20 +434,20 @@ class _MatchupCard extends StatelessWidget {
     final home = matchup.home;
     final away = matchup.away!;
     final homeColor = matchup.homeWon
-        ? const Color(0xFF4CAF50)
+        ? AppColors.accent
         : matchup.isDraw
             ? Colors.white70
-            : const Color(0xFFFF7043);
+            : AppColors.live;
     final awayColor = matchup.awayWon
-        ? const Color(0xFF4CAF50)
+        ? AppColors.accent
         : matchup.isDraw
             ? Colors.white70
-            : const Color(0xFFFF7043);
+            : AppColors.live;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -476,8 +477,10 @@ class _MatchupCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 6),
-                _MiniAvatar(
-                    photoUrl: home.photoUrl, displayName: home.displayName),
+                UserAvatar(
+                    radius: 16,
+                    photoUrl: home.photoUrl,
+                    displayName: home.displayName),
               ],
             ),
           ),
@@ -493,8 +496,10 @@ class _MatchupCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                _MiniAvatar(
-                    photoUrl: away.photoUrl, displayName: away.displayName),
+                UserAvatar(
+                    radius: 16,
+                    photoUrl: away.photoUrl,
+                    displayName: away.displayName),
                 const SizedBox(width: 6),
                 Text(
                   away.displayName,
@@ -522,42 +527,6 @@ class _MatchupCard extends StatelessWidget {
   }
 }
 
-class _MiniAvatar extends StatelessWidget {
-  final String photoUrl;
-  final String displayName;
-  const _MiniAvatar({required this.photoUrl, required this.displayName});
-
-  @override
-  Widget build(BuildContext context) {
-    if (photoUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 12,
-        backgroundColor: const Color(0xFF4CAF50),
-        child: ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: photoUrl,
-            width: 24,
-            height: 24,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => _initials(),
-          ),
-        ),
-      );
-    }
-    return CircleAvatar(
-      radius: 12,
-      backgroundColor: const Color(0xFF4CAF50),
-      child: _initials(),
-    );
-  }
-
-  Widget _initials() => Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: const TextStyle(
-            fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-      );
-}
-
 // ── League standings ──────────────────────────────────────────────────────────
 
 class _LeagueStandings extends StatelessWidget {
@@ -577,7 +546,7 @@ class _LeagueStandings extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+              child: CircularProgressIndicator(color: AppColors.accent));
         }
         if (snapshot.hasError) {
           return Center(
@@ -656,19 +625,19 @@ class _MemberRow extends StatelessWidget {
     final diffColor = isMe
         ? Colors.white38
         : diff > 0
-            ? const Color(0xFF4CAF50)
+            ? AppColors.accent
             : diff < 0
-                ? const Color(0xFFFF7043)
+                ? AppColors.live
                 : Colors.white38;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF1E3A5F) : const Color(0xFF1A1A2E),
+        color: isMe ? AppColors.gradientStart : AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isMe
-              ? const Color(0xFF4CAF50).withValues(alpha: 0.4)
+              ? AppColors.accent.withValues(alpha: 0.4)
               : Colors.white.withValues(alpha: 0.05),
         ),
       ),
@@ -678,7 +647,8 @@ class _MemberRow extends StatelessWidget {
           SizedBox(
             width: 24,
             child: rank <= 3
-                ? Icon(Icons.emoji_events, color: _rankColor(rank), size: 18)
+                ? Icon(Icons.emoji_events,
+                    color: AppColors.forRank(rank), size: 18)
                 : Text('#$rank',
                     style: const TextStyle(
                         color: Colors.white38,
@@ -687,8 +657,10 @@ class _MemberRow extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           // Avatar
-          _TinyAvatar(
-              photoUrl: member.photoUrl, displayName: member.displayName),
+          UserAvatar(
+              radius: 12,
+              photoUrl: member.photoUrl,
+              displayName: member.displayName),
           const SizedBox(width: 10),
           // Name
           Expanded(
@@ -727,46 +699,4 @@ class _MemberRow extends StatelessWidget {
       ),
     );
   }
-
-  Color _rankColor(int r) {
-    if (r == 1) return const Color(0xFFFFD700);
-    if (r == 2) return const Color(0xFFBDBDBD);
-    return const Color(0xFFCD7F32);
-  }
-}
-
-class _TinyAvatar extends StatelessWidget {
-  final String photoUrl;
-  final String displayName;
-  const _TinyAvatar({required this.photoUrl, required this.displayName});
-
-  @override
-  Widget build(BuildContext context) {
-    if (photoUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 16,
-        backgroundColor: const Color(0xFF4CAF50),
-        child: ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: photoUrl,
-            width: 32,
-            height: 32,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => _initials(),
-          ),
-        ),
-      );
-    }
-    return CircleAvatar(
-      radius: 16,
-      backgroundColor: const Color(0xFF4CAF50),
-      child: _initials(),
-    );
-  }
-
-  Widget _initials() => Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: const TextStyle(
-            fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-      );
 }

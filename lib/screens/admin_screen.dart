@@ -5,6 +5,7 @@ import '../models/fixture_model.dart';
 import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
 import '../services/notification_service.dart';
+import '../theme/app_colors.dart';
 
 class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
@@ -60,26 +61,26 @@ class _AdminScreenState extends State<AdminScreen> {
   Widget build(BuildContext context) {
     if (_checkingAdmin) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+          child: CircularProgressIndicator(color: AppColors.accent),
         ),
       );
     }
 
     if (!_isAdmin) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+          child: CircularProgressIndicator(color: AppColors.accent),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Admin — Enter Results',
@@ -125,7 +126,7 @@ class _AdminScreenState extends State<AdminScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surface,
         title: const Text('Reset Weekly Points?',
             style: TextStyle(color: Colors.white)),
         content: const Text(
@@ -159,7 +160,7 @@ class _AdminScreenState extends State<AdminScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Weekly points reset to 0 for all users'),
-          backgroundColor: Color(0xFF4CAF50),
+          backgroundColor: AppColors.accent,
         ),
       );
     } catch (e) {
@@ -181,7 +182,7 @@ class _AdminScreenState extends State<AdminScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Synced ${result.length} upcoming fixtures'),
-          backgroundColor: const Color(0xFF4CAF50),
+          backgroundColor: AppColors.accent,
         ),
       );
     } catch (e) {
@@ -212,7 +213,7 @@ class _FixtureList extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+              child: CircularProgressIndicator(color: AppColors.accent));
         }
 
         final fixtures = snapshot.data ?? [];
@@ -255,7 +256,7 @@ class _FixtureList extends StatelessWidget {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF1A1A2E),
+      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -283,7 +284,7 @@ class _AdminFixtureCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -310,7 +311,7 @@ class _AdminFixtureCard extends StatelessWidget {
           ElevatedButton(
             onPressed: onEnterResult,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: AppColors.accent,
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
@@ -362,7 +363,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
+        backgroundColor: AppColors.surface,
         title:
             const Text('Confirm Result', style: TextStyle(color: Colors.white)),
         content: Text(
@@ -377,8 +378,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
                 const Text('Cancel', style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Confirm'),
           ),
@@ -412,7 +412,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Result submitted — predictions scored!'),
-          backgroundColor: Color(0xFF4CAF50),
+          backgroundColor: AppColors.accent,
         ),
       );
     } catch (e) {
@@ -487,7 +487,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
             child: ElevatedButton(
               onPressed: _submitting ? null : _confirm,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4CAF50),
+                backgroundColor: AppColors.accent,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14)),
               ),
@@ -556,12 +556,11 @@ class _StepBtn extends StatelessWidget {
         width: 42,
         height: 42,
         decoration: BoxDecoration(
-          color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
+          color: AppColors.accent.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(10),
-          border:
-              Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
+          border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
         ),
-        child: Icon(icon, color: const Color(0xFF4CAF50), size: 20),
+        child: Icon(icon, color: AppColors.accent, size: 20),
       ),
     );
   }
@@ -580,7 +579,7 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F0F1A),
+        color: AppColors.background,
         border: Border(
             top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),

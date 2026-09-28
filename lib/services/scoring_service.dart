@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class ScoringService {
   // ── Core scoring logic ────────────────────────────────────────────────────
@@ -52,10 +53,10 @@ class ScoringService {
   }
 
   static Color pointsColor(int points) {
-    if (points == 5) return const Color(0xFFFFD700);
-    if (points == 3) return const Color(0xFF29B6F6);
-    if (points == 1) return const Color(0xFF4CAF50);
-    if (points == 0) return const Color(0xFFFF7043);
+    if (points == 5) return AppColors.gold;
+    if (points == 3) return AppColors.info;
+    if (points == 1) return AppColors.accent;
+    if (points == 0) return AppColors.live;
     return Colors.white38; // -1 or unknown
   }
 }

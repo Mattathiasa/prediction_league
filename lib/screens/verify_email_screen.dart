@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 
 class VerifyEmailScreen extends StatefulWidget {
   const VerifyEmailScreen({super.key});
@@ -24,7 +25,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Verification email sent'),
-            backgroundColor: Color(0xFF4CAF50),
+            backgroundColor: AppColors.accent,
           ),
         );
       }
@@ -65,7 +66,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     final email = FirebaseAuth.instance.currentUser?.email ?? '';
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -77,13 +78,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E3A5F),
+                  color: AppColors.gradientStart,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: const Icon(
                   Icons.mark_email_unread_outlined,
                   size: 56,
-                  color: Color(0xFF4CAF50),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(height: 24),
@@ -114,13 +115,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                         width: 16,
                         height: 16,
                         child: CircularProgressIndicator(
-                          color: Color(0xFF4CAF50),
+                          color: AppColors.accent,
                           strokeWidth: 2,
                         ),
                       )
                     : const Text(
                         'Resend email',
-                        style: TextStyle(color: Color(0xFF4CAF50)),
+                        style: TextStyle(color: AppColors.accent),
                       ),
               ),
               const SizedBox(height: 24),
@@ -130,7 +131,7 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
                 child: ElevatedButton(
                   onPressed: _isChecking ? null : _checkVerified,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
+                    backgroundColor: AppColors.accent,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),

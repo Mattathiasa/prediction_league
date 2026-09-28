@@ -6,12 +6,19 @@ import '../models/user_model.dart';
 import '../models/matchup_model.dart';
 
 class LeagueService {
-  final FirebaseFirestore _db;
-  final FirebaseFunctions _functions;
+  // Resolved lazily rather than in the initialiser list so that constructing
+  // the service does not require an initialised Firebase app — the pure helpers
+  // below can then be exercised in a plain unit test.
+  final FirebaseFirestore? _dbOverride;
+  final FirebaseFunctions? _functionsOverride;
 
   LeagueService({FirebaseFirestore? db, FirebaseFunctions? functions})
-      : _db = db ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance;
+      : _dbOverride = db,
+        _functionsOverride = functions;
+
+  FirebaseFirestore get _db => _dbOverride ?? FirebaseFirestore.instance;
+  FirebaseFunctions get _functions =>
+      _functionsOverride ?? FirebaseFunctions.instance;
 
   // ── Invite code ────────────────────────────────────────────────────────────
 
@@ -113,8 +120,10 @@ class LeagueService {
 
   /// Generates weekly head-to-head pairings using classic fantasy style:
   /// 1st seed vs last seed, 2nd vs 2nd-to-last, etc.
-  /// The top seed gets a bye if the league has an odd number of members.
-  List<LeagueMatchup> generateMatchups(List<UserModel> members) {
+  /// The middle seed gets a bye if the league has an odd number of members.
+  ///
+  /// Pure — takes members, returns pairings, touches nothing else.
+  static List<LeagueMatchup> generateMatchups(List<UserModel> members) {
     // Sort by weeklyPoints desc, totalPoints desc as tiebreaker
     final sorted = List<UserModel>.from(members)
       ..sort((a, b) {

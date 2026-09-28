@@ -6,6 +6,7 @@ import '../providers/fixture_provider.dart';
 import '../providers/prediction_provider.dart';
 import '../services/auth_service.dart';
 import 'predict_screen.dart';
+import '../theme/app_colors.dart';
 
 class FixtureListScreen extends StatefulWidget {
   const FixtureListScreen({super.key});
@@ -32,9 +33,9 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
     final predictionProvider = context.watch<PredictionProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -50,7 +51,7 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
-                    color: Color(0xFF4CAF50), strokeWidth: 2),
+                    color: AppColors.accent, strokeWidth: 2),
               ),
             )
           else if (context.read<AuthService>().isAdmin)
@@ -71,7 +72,7 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+                    child: CircularProgressIndicator(color: AppColors.accent),
                   );
                 }
 
@@ -88,8 +89,8 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                 }
 
                 return RefreshIndicator(
-                  color: const Color(0xFF4CAF50),
-                  backgroundColor: const Color(0xFF1A1A2E),
+                  color: AppColors.accent,
+                  backgroundColor: AppColors.surface,
                   onRefresh: () => fixtureProvider.syncFixtures(),
                   child: ListView.separated(
                     padding: const EdgeInsets.all(16),
@@ -143,12 +144,12 @@ class _FixtureCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A2E),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: locked
                 ? Colors.white.withValues(alpha: 0.06)
-                : const Color(0xFF4CAF50).withValues(alpha: 0.25),
+                : AppColors.accent.withValues(alpha: 0.25),
           ),
         ),
         child: Column(
@@ -195,15 +196,15 @@ class _FixtureCard extends StatelessWidget {
                 Row(
                   children: [
                     if (locked)
-                      const _Badge(label: 'LOCKED', color: Color(0xFFB71C1C))
+                      const _Badge(label: 'LOCKED', color: AppColors.danger)
                     else
-                      const _Badge(label: 'OPEN', color: Color(0xFF4CAF50)),
+                      const _Badge(label: 'OPEN', color: AppColors.accent),
                     if (prediction != null) ...[
                       const SizedBox(width: 6),
                       _Badge(
                         label:
                             '${prediction!.homeGuess}–${prediction!.awayGuess}',
-                        color: const Color(0xFF29B6F6),
+                        color: AppColors.info,
                         icon: Icons.check_circle_outline,
                       ),
                     ],
@@ -228,7 +229,7 @@ class _KickoffChip extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 8),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF0D2137),
+        color: AppColors.gradientEnd,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -372,7 +373,7 @@ class _EmptyState extends StatelessWidget {
           ElevatedButton.icon(
             onPressed: onRefresh,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4CAF50),
+              backgroundColor: AppColors.accent,
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
             ),

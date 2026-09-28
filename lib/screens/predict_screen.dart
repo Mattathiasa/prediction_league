@@ -8,6 +8,7 @@ import '../models/prediction_model.dart';
 import '../providers/prediction_provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../theme/app_colors.dart';
 
 class PredictScreen extends StatefulWidget {
   final FixtureModel fixture;
@@ -98,7 +99,7 @@ class _PredictScreenState extends State<PredictScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor: isError ? Colors.red.shade700 : const Color(0xFF4CAF50),
+      backgroundColor: isError ? Colors.red.shade700 : AppColors.accent,
     ));
   }
 
@@ -108,9 +109,9 @@ class _PredictScreenState extends State<PredictScreen> {
     final predProvider = context.watch<PredictionProvider>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
@@ -145,9 +146,9 @@ class _PredictScreenState extends State<PredictScreen> {
                 child: ElevatedButton(
                   onPressed: predProvider.isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4CAF50),
+                    backgroundColor: AppColors.accent,
                     disabledBackgroundColor:
-                        const Color(0xFF4CAF50).withValues(alpha: 0.4),
+                        AppColors.accent.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                   ),
@@ -212,7 +213,7 @@ class _MatchHeader extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D2137)],
+          colors: [AppColors.gradientStart, AppColors.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -273,21 +274,20 @@ class _CountdownBanner extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF4CAF50).withValues(alpha: 0.08),
+        color: AppColors.accent.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border:
-            Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.timer_outlined, color: Color(0xFF4CAF50), size: 20),
+          const Icon(Icons.timer_outlined, color: AppColors.accent, size: 20),
           const SizedBox(width: 10),
           const Text('Locks in ',
               style: TextStyle(color: Colors.white60, fontSize: 14)),
           Text(
             '$h:$m:$s',
             style: const TextStyle(
-              color: Color(0xFF4CAF50),
+              color: AppColors.accent,
               fontSize: 14,
               fontWeight: FontWeight.bold,
               fontFamily: 'monospace',
@@ -340,7 +340,7 @@ class _LockedPredictionSummary extends StatelessWidget {
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -348,7 +348,7 @@ class _LockedPredictionSummary extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           const Icon(Icons.check_circle_outline,
-              color: Color(0xFF4CAF50), size: 18),
+              color: AppColors.accent, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -400,7 +400,7 @@ class _ScoreCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -526,19 +526,19 @@ class _StepBtn extends StatelessWidget {
         height: 38,
         decoration: BoxDecoration(
           color: active
-              ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
+              ? AppColors.accent.withValues(alpha: 0.12)
               : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: active
-                ? const Color(0xFF4CAF50).withValues(alpha: 0.4)
+                ? AppColors.accent.withValues(alpha: 0.4)
                 : Colors.white12,
           ),
         ),
         child: Icon(
           icon,
           size: 18,
-          color: active ? const Color(0xFF4CAF50) : Colors.white24,
+          color: active ? AppColors.accent : Colors.white24,
         ),
       ),
     );
