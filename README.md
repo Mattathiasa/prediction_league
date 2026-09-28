@@ -1,402 +1,238 @@
 # Prediction League
 
-A Flutter mobile app for Premier League football (soccer) score prediction. Users predict match results, earn points based on prediction accuracy, compete on leaderboards, and join private leagues with friends.
+A Flutter + Firebase mobile app for Premier League score prediction. Predict scorelines, earn points on accuracy, and compete on global leaderboards or in private leagues with friends.
 
-Built with Flutter, Firebase (Auth, Firestore, Cloud Messaging), and the [football-data.org](https://www.football-data.org) API.
-
----
-
-## Features
-
-### For Users
-
-- **Google Sign-In** — One-tap authentication via Google
-- **Match Predictions** — Predict the scoreline for upcoming Premier League fixtures
-  - Prediction window closes **1 hour before kickoff** (hard lock)
-  - Real-time countdown timer on each fixture
-- **Scoring System** — Earn points for correct predictions:
-
-  | Accuracy | Points | Label |
-  |----------|--------|-------|
-  | Exact scoreline | 5 | Exact score! |
-  | Correct result + correct goal difference | 3 | Right result + GD |
-  | Correct result only | 1 | Right result |
-  | Wrong result | 0 | Wrong result |
-  | Missed / no prediction | -1 | No prediction |
-
-- **Results Screen** — View finished matches, your predictions, and points earned per fixture
-- **Leaderboards** — Global rankings sorted by total points or weekly points (load more / infinite scroll)
-- **Private Leagues** — Create or join leagues with a 6-character invite code
-  - League-specific standings with "vs you" point differential
-  - Admin can reset weekly points (typically done each Monday)
-- **Match Reminders** — Local notifications scheduled 1 hour before each kickoff
-- **Badges** — Achievement system:
-  - **First Kick** — Submit your first prediction
-  - **Sniper** — Predict an exact scoreline (5 pts)
-  - **On Fire** — 5 consecutive predictions with points > 0
-- **Admin Panel** — PIN-protected screen (default PIN: `1234`) for entering final scores and scoring predictions
-- **Share Predictions** — Share your prediction for a fixture via the native share sheet
-
-### For Admins
-
-- Enter match results, which triggers automatic scoring for all user predictions
-- Score entry triggers a post-result notification showing the current user's points
+[![CI](https://github.com/Mattathiasa/prediction_league/actions/workflows/test.yml/badge.svg)](https://github.com/Mattathiasa/prediction_league/actions/workflows/test.yml)
 
 ---
 
 ## Screenshots
 
-> *Add screenshots to `screenshots/` and update the image paths below.*
-> 
-> `<img src="screenshots/auth.png" width="200" />` `<img src="screenshots/home.png" width="200" />` `<img src="screenshots/predict.png" width="200" />` `<img src="screens/league.png" width="200" />`
+> **TODO:** add six screenshots to `screenshots/` and link them here, plus a short
+> screen recording at the top. For a mobile app this is the most important part of
+> the README — see "Contributing to this README" at the bottom.
+
+---
+
+## Why I built this
+
+I wanted a project where the *interesting* problems were not in the UI. A score
+predictor looks trivial until you take its integrity seriously:
+
+- **A prediction must be provably submitted before kickoff.** That cannot be
+  enforced on the client, and it cannot be enforced by a flag an admin flips
+  later. It has to be a server-clock comparison in the security rules.
+- **A leaderboard needs to read across users, but user documents are private.**
+  Resolving that without making `/users` world-readable is a data-modelling
+  decision, not a rules tweak.
+- **Scoring a fixture touches every player at once.** Firestore caps a batch at
+  500 writes, so "score all predictions" stops working at a few hundred users
+  unless you design for it.
+
+Most of the engineering in this repo is about those three problems.
+
+## Scoring
+
+| Accuracy | Points |
+|---|---|
+| Exact scoreline | 5 |
+| Correct result and goal difference | 3 |
+| Correct result only | 1 |
+| Wrong result | 0 |
+| No prediction submitted | −1 |
+
+Scoring runs server-side in `scoreFixtureResults`. The client has a copy of the
+same function for display only; the server's result is authoritative.
+
+## Features
+
+- **Google Sign-In**
+- **Predictions** with a live countdown, locking one hour before kickoff
+- **Leaderboards** — all-time and weekly, paginated
+- **Private leagues** — 20 members, 6-character invite code, weekly head-to-head
+  pairings (top seed vs bottom seed, middle seed gets the bye)
+- **Badges** — first prediction, exact scoreline, five scoring predictions in a row
+- **Match reminders** — local notification one hour before kickoff
+- **Admin panel** — enter results and trigger scoring; access is verified
+  server-side against an `admin_roles` collection that no client can write
 
 ---
 
 ## Architecture
 
-### Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | Flutter (stable channel) |
-| State Management | `provider` package (ChangeNotifier / ChangeNotifierProxyProvider) |
-| Backend | Firebase (Auth, Firestore, Cloud Functions, Cloud Messaging) |
-| External API | football-data.org (Premier League fixtures & results) |
-| Local Notifications | `flutter_local_notifications` + `timezone` |
-| Image Caching | `cached_network_image` |
-| Sharing | `share_plus` |
+| Layer | Choice |
+|---|---|
+| Framework | Flutter (stable) |
+| State | `provider` — `ChangeNotifier` + `ChangeNotifierProxyProvider` |
+| Backend | Firebase Auth, Firestore, Cloud Functions (TypeScript), App Check |
+| Fixture data | [football-data.org](https://www.football-data.org) v4 |
+| Notifications | `flutter_local_notifications` (device-local; there is no push) |
 | Monetization | `google_mobile_ads`, `in_app_purchase` |
 
-### App Icon & Splash
-
-Custom app icons and splash screens are configured via `pubspec.yaml` and use assets in `assets/icon/` and `assets/splash/`. Run `dart run flutter_launcher_icons` and `dart run flutter_native_splash:create` to regenerate.
-
-### Project Structure
-
 ```
-prediction_league/
-├── android/                        # Android native config
-├── ios/                            # iOS native config (Flutter + Podfile)
-├── lib/
-│   ├── models/
-│   │   ├── fixture_model.dart      # Fixture data model (Firestore)
-│   │   ├── league_model.dart       # League data model
-│   │   ├── matchup_model.dart      # League head-to-head matchup model
-│   │   ├── prediction_model.dart   # Prediction data model (with copyWith)
-│   │   └── user_model.dart         # User data model (stats, badges, isPremium)
-│   ├── services/
-│   │   ├── auth_service.dart       # Google Sign-In + email verification
-│   │   ├── badge_service.dart      # Badge definitions + awarding logic
-│   │   ├── fixture_service.dart    # Firestore streams + Cloud Functions sync
-│   │   ├── league_service.dart     # League CRUD, invite codes, member mgmt (20 cap)
-│   │   ├── notification_service.dart # Match reminders + result notifications (Android + iOS)
-│   │   ├── prediction_service.dart # Submit predictions (with lock check)
-│   │   ├── scoring_service.dart    # Pure scoring logic (5/3/1/0 points)
-│   │   └── subscription_service.dart # IAP + premium state (Firestore-backed)
-│   ├── providers/
-│   │   ├── fixture_provider.dart   # Sync fixtures + schedule reminders
-│   │   ├── league_provider.dart    # League streams + create/join
-│   │   └── prediction_provider.dart # Prediction CRUD + optimistic updates
-│   ├── screens/
-│   │   ├── admin_screen.dart       # Server-side admin auth (checkAdmin callable)
-│   │   ├── auth_screen.dart        # Google Sign-In screen
-│   │   ├── create_league_screen.dart
-│   │   ├── fixture_list_screen.dart # Upcoming fixtures + sync
-│   │   ├── history_screen.dart     # Prediction history
-│   │   ├── home_screen.dart        # Dashboard (stats, quick nav, ads)
-│   │   ├── join_league_screen.dart
-│   │   ├── leaderboard_screen.dart # All-time + weekly tabs
-│   │   ├── my_league_screen.dart   # League standings + matchups
-│   │   ├── paywall_screen.dart     # Premium subscription UI
-│   │   ├── predict_screen.dart     # Score entry with countdown timer
-│   │   ├── profile_screen.dart     # Stats + badges
-│   │   ├── results_screen.dart     # Finished matches + points summary
-│   │   └── verify_email_screen.dart # Email verification gate
-│   ├── widgets/
-│   │   └── banner_ad_widget.dart   # Conditional AdMob banner (premium = no ads)
-│   ├── firebase_options.dart       # Firebase config (generated, not committed)
-│   └── main.dart                   # App entry + MultiProvider setup
-├── functions/
-│   ├── src/
-│   │   └── index.ts                # Cloud Functions (syncFixtures, updateFixtureStatus)
-│   ├── package.json
-│   ├── tsconfig.json
-│   └── (node_modules & lib excluded via .gitignore)
-├── test/
-│   └── widget_test.dart            # Unit tests (ScoringService, models)
-├── firestore.rules                 # Security rules
-├── firestore.indexes.json          # Composite index definitions
-├── firebase.json                   # Firebase project config
-└── pubspec.yaml                    # Flutter dependencies + icon/splash config
+lib/
+├── models/       Firestore document shapes
+├── services/     Firebase access; constructor-injected so they can be faked
+├── providers/    ChangeNotifiers bridging services to widgets
+├── screens/      One per route
+├── widgets/      Shared components
+└── theme/        Colour tokens and ThemeData
+functions/src/    Cloud Functions
+functions/test/   Unit tests and Firestore rules tests
 ```
+
+### Decisions worth explaining
+
+**`/publicProfiles` mirrors the public half of `/users`.**
+`/users` is readable only by its owner. But the leaderboard queries across all
+users, and league standings fetch twenty of them at once — and Firestore rejects
+a collection query outright if *any* matching document is disallowed, rather than
+filtering it. The alternatives were to open `/users` up, or to project the four
+public fields into a separate collection that Cloud Functions alone can write.
+The projection keeps private stats private and costs one trigger.
+
+**The prediction lock is a rules-level clock comparison.**
+```
+get(/databases/$(database)/documents/fixtures/$(fixtureId)).data.kickoff
+  > request.time + duration.value(1, 'h')
+```
+`FixtureModel.isLocked` exists for the UI countdown, but it is not a security
+boundary — a modified client or a raw REST write ignores it entirely. The rule
+costs one document read per prediction write, which is the right trade for the
+one property the game cannot function without.
+
+**Joining a league is a callable, not a client write.**
+Finding a league by invite code means reading a league you are not yet a member
+of. Allowing that from the client would make every league world-readable. The
+callable also applies the 20-member cap inside a transaction — a non-transactional
+check lets two simultaneous joins both pass at 19/20.
+
+**Admin state is UX only.**
+`admin_roles` is unwritable by every client, and each privileged callable
+re-reads it rather than trusting the caller. Hiding the admin menu item is
+cosmetic; the boundary is server-side and enforced per call.
+
+**App Check is enforced at the boundary, not per rule.**
+Console enforcement for Firestore runs before rules evaluate, and the callables
+each declare `enforceAppCheck`. Repeating `request.app != null` in every rule
+would be redundant *and* would make the ruleset untestable, since the standard
+test harness cannot mint App Check tokens.
 
 ---
 
-## Data Flow
-
-```
-User predicts scores
-  → Firestore (predictions collection, owner-only, lock-enforced)
-
-Fixture data (football-data.org API, server-side)
-  → Cloud Function (syncFixtures, admin-only)
-  → Firestore (fixtures collection, server-side writes only)
-  → Client streams (upcomingFixtures, finishedFixtures)
-
-Admin enters final score
-  → Cloud Function (scoreFixtureResults, admin-only)
-  → Firestore batch writes (predictions + users + fixtures)
-  → BadgeService.checkAndAwardPostResultBadges()
-  → Local notification via NotificationService
-```
-
-### Fixture Syncing (Server-Side)
-
-The football-data.org API key is stored in **Cloud Functions environment variables** (never in the client). The `syncFixtures` callable function fetches fixtures server-side, batch-writes to Firestore, and returns a summary count. The client calls this function instead of accessing the API directly.
-
-A scheduled function (`updateFixtureStatus`) runs every 10 minutes during match hours to auto-update fixture statuses and scores.
-
-**Requirements:** Blaze plan for scheduled functions. On Spark Plan, use the admin screen's sync button to trigger `syncFixtures` manually.
-
-### Admin Authentication
-
-Admin access is verified server-side via the `admin_roles` Firestore collection. To grant admin access to a user:
+## Testing
 
 ```bash
-firebase firestore:indexes  # (apply rules first)
-# Then add via Firebase console or a one-time setup script:
-firebase functions:call checkAdmin --data '{}'
+flutter test                      # 44 widget, model and service tests
+cd functions && npm test          # scoring logic
+cd functions && npm run test:rules  # Firestore rules, against the emulator
 ```
 
-Or add a document to `admin_roles/{uid}` with `{isAdmin: true}` directly in the Firebase console.
+The rules suite is the one worth looking at. Services take their Firebase
+dependencies through the constructor, so `fake_cloud_firestore` covers the
+service layer without a live project.
 
----
+Rules tests need Java for the Firestore emulator:
 
-## Firestore Data Model
-
-### Collections
-
-| Collection | Document Fields |
-|---|---|
-| **users** (`{uid}`) | `displayName`, `photoUrl`, `totalPoints`, `weeklyPoints`, `streak`, `bestStreak`, `accuracy`, `badgeIds[]`, `predictionsCount`, `correctResults`, `exactScoreCount`, `highestWeeklyPoints`, `isPremium` |
-| **fixtures** (`{fixtureId}`) | `homeTeam`, `awayTeam`, `kickoff` (Timestamp), `homeScore`, `awayScore`, `status` (`upcoming`/`live`/`finished`), `competition` |
-| **predictions** (`{userId}_{fixtureId}`) | `userId`, `fixtureId`, `homeGuess`, `awayGuess`, `pointsEarned`, `submittedAt`, `locked` |
-| **leagues** (`{leagueId}`) | `name`, `adminId`, `memberIds[]` (max 20), `inviteCode`, `createdAt` |
-| **admin_roles** (`{uid}`) | `isAdmin: true` (server-managed only) |
-
-### Security Rules
-
-All collections require App Check. Enable enforcement in the Firebase console (App Check → Firestore → Enforce).
-
-```
-users/{userId}         → read/write by owner only (isPremium server-managed)
-fixtures/{fixtureId}   → read by any authenticated user; create/update/delete denied to clients (Cloud Functions only)
-predictions/{predId}   → create by owner (restricted fields); update by owner before lock only; pointsEarned/locked server-managed
-leagues/{leagueId}     → read by members; create/manage by admin; updates limited to name, memberIds, inviteCode
-admin_roles/{uid}      → read by owner; no client writes
+```bash
+brew install openjdk
+export PATH="/opt/homebrew/opt/openjdk/bin:$PATH"
 ```
 
 ---
 
 ## Setup
 
-### Prerequisites
+### 1. Prerequisites
 
-- [Flutter SDK](https://docs.flutter.dev/get-started/install) (stable channel, >= 3.3.4)
-- Node.js 20+ (for Firebase Functions)
-- A [football-data.org](https://www.football-data.org/client/register) API key (free tier: 10 calls/min)
-- A Firebase project with the following services enabled (Blaze plan recommended)
-  - Authentication (Google Sign-In)
-  - Firestore
-  - Cloud Functions
-  - App Check
-  - Cloud Messaging (Android)
-  - (Optional) AdMob for ads
+Flutter (stable), Node 20, the Firebase CLI, and a Firebase project on the Blaze
+plan — scheduled functions require it.
 
-### 1. Clone and Install
+### 2. Install
 
 ```bash
-git clone https://github.com/Mattathiasa/prediction_league.git
-cd prediction_league
-
 flutter pub get
-```
-
-### 2. Install Firebase CLI
-
-```bash
-npm install -g firebase-tools
-firebase login
+npm --prefix functions ci
 ```
 
 ### 3. Configure Firebase
 
-The app is pre-configured for Firebase project `predictionleague-25968`. To use your own project:
-
 ```bash
-# Install FlutterFire CLI
 dart pub global activate flutterfire_cli
-
-# Configure Firebase for your project
 flutterfire configure
 ```
 
-This generates `lib/firebase_options.dart` (excluded from version control — see `.gitignore`).
+This generates `lib/firebase_options.dart`, which is gitignored. A placeholder
+lives at `lib/firebase_options.dart.template` so CI can analyze a clean clone.
 
-### 4. Set Up the football-data.org API Key
+### 4. Set the football-data.org API key
 
-Configure the API key as a Firebase Functions environment variable:
+Get a free key at [football-data.org](https://www.football-data.org/client/register),
+then store it in Secret Manager:
 
 ```bash
-cd functions
-npm install
-firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
+firebase functions:secrets:set FOOTBALL_DATA_API_KEY
 ```
 
-> **Security:** The API key lives only in Cloud Functions environment variables and is never exposed to the client. The `syncFixtures` callable function uses it server-side.
+`syncFixtures` and `updateFixtureStatus` declare it via `runWith({ secrets })`.
+It is never sent to the client. For the local emulator, copy
+`functions/.env.example` to `functions/.env`.
 
-> **Admin setup:** Add your Firebase UID to the `admin_roles` collection in Firestore:
-> ```
-> admin_roles/{your_uid} → { isAdmin: true }
-> ```
+### 5. Grant yourself admin
 
-### 5. Enable App Check
+In the Firestore console, create `admin_roles/{your_uid}` with `{ isAdmin: true }`.
+No client can write this collection.
 
-In the Firebase console, navigate to App Check → Firestore → Enforce. This prevents non-genuine clients from accessing your data.
+### 6. Enable App Check
 
-### 6. Deploy
+Firebase console → App Check → Firestore → Enforce, and register your debug
+token (printed at startup) under the Debug providers.
+
+### 7. Deploy
 
 ```bash
-firebase deploy
+firebase deploy --only firestore:rules,functions
 ```
 
-### 6. Run Locally
+### 8. Run
 
 ```bash
-# Start the Firebase emulator (Firestore + Functions)
-firebase emulators:start --only firestore,functions
-
-# In another terminal, run the Flutter app
 flutter run
 ```
 
 ---
 
-## Development
+## Project status
 
-### Running Tests
+Working and tested: predictions, leaderboards, private leagues, scoring, badges,
+admin tooling.
 
-```bash
-flutter test
-```
+Known gaps, tracked honestly rather than hidden:
 
-Test coverage includes:
-- `ScoringService.calculatePoints()` — all scoring scenarios (5, 3, 1, 0 points)
-- `ScoringService.pointsLabel()` — label mapping
-- `FixtureModel` — `isLocked`, `isFinished`, `isLive`, `isUpcoming`, `fromApi()`, `fromFirestore()`
-- `PredictionModel` — `copyWith()` and Firestore round-trip serialization
-- `UserModel` — defaults, `toMap()`, `copyWith()`
-- `LeagueService` — `maxLeagueMembers` constant, `generateInviteCode()` format
-- `LeagueMatchup` — bye/win/loss result text logic
+- **In-app purchases are not receipt-verified.** `setPremium` currently trusts
+  any authenticated caller, and entitlements never expire. Do not ship a paid
+  build until this is fixed.
+- **The banner ad unit id is wrong** — it is an AdMob *App* ID where a unit ID
+  belongs, so no ad will ever fill.
+- **No account deletion**, which both stores require for apps with sign-in.
+- **No privacy policy or terms.**
+- **Android release builds are signed with the debug key.**
+- **No crash reporting or analytics.**
 
-### Function Tests (Cloud Functions)
-
-```bash
-cd functions
-npm test
-```
-
-Tests the pure scoring logic (`calculatePoints`, `outcome`) that mirrors the client-side `ScoringService`.
-
-### Scoring Logic
-
-The `ScoringService` is a pure, stateless utility — no Firebase dependencies. This makes it trivially testable:
-
-```
-Exact score (e.g. 2-1 predicted, 2-1 actual) → 5 pts
-Correct result, same goal difference (e.g. 3-1 predicted, 2-0 actual) → 3 pts
-Correct result, different goal difference (e.g. 1-0 predicted, 3-1 actual) → 1 pt
-Wrong result → 0 pts
-```
-
-### Prediction Window
-
-A fixture's prediction window closes **1 hour before kickoff**. The `FixtureModel.isLocked` property checks this on the client. The `PredictScreen` shows a live countdown until lock. Once locked, predictions are read-only.
-
-### Deployment Checklist
-
-Before releasing, complete these steps:
-
-1. **Deploy Cloud Functions**
-   ```bash
-   firebase deploy --only functions
-   ```
-   This activates `syncFixtures`, `scoreFixtureResults`, `checkAdmin`, and `setPremium` callables, plus scheduled functions.
-
-2. **Set the football-data.org API key**
-   ```bash
-   cd functions
-   firebase functions:configure -o '{"footballDataApiKey":"YOUR_API_KEY"}'
-   firebase deploy --only functions
-   ```
-
-3. **Create an admin role**
-   In the Firebase console → Firestore → `admin_roles` collection, create a document with your Firebase UID as the document ID:
-   ```
-   admin_roles/{yourUid} → { isAdmin: true }
-   ```
-
-4. **Enable App Check enforcement**
-   In the Firebase console → App Check → Firestore → toggle **Enforce** to ON.
-   Without this, Firestore rules that check `request.app != null` will not be enforced.
-
-5. **Configure AdMob**
-   Replace the test AdMob app ID in `main.dart` and the banner ad unit ID in `lib/widgets/banner_ad_widget.dart` with your production IDs from the AdMob console.
+The app is not store-ready. Those items are what stands between here and a
+submission.
 
 ---
 
-## Configuration Reference
+## Licence
 
-### Admin Authentication
-
-Admin access is verified **server-side** via the `admin_roles` Firestore collection. There is no client-side PIN. To grant admin access:
-
-1. Add your Firebase UID to `admin_roles/{uid}` with `{isAdmin: true}` in the Firebase console
-2. The app will call the `checkAdmin` Cloud Function on admin screen open
-
-### Prediction Lock Window
-
-The prediction lock window is hardcoded to 1 hour before kickoff (`FixtureModel.isLocked`).
-
-### Monetization
-
-The app supports AdMob banner ads and premium in-app subscriptions:
-
-**AdMob Ads**
-- Banner ads are shown at the bottom of the HomeScreen for non-premium users
-- Ad unit ID: `ca-app-pub-3210681117962880~9348060115`
-- Replace with your production AdMob ID before publishing
-- Initialize Google Mobile Ads in `main.dart` via `MobileAds.instance.initialize()`
-
-**Premium Subscriptions**
-- In-app products: `premium_monthly`, `remove_ads`
-- Premium state stored in Firestore (`users/{uid}.isPremium`) — server-managed
-- Purchase flow handled by `SubscriptionService` (initialized on auth state change)
-- PaywallScreen accessible via HomeScreen → menu → "Go Premium"
-- Features: Ad-free, premium badge, early access, priority sync
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-## Contributing
+## Contributing to this README
 
-1. Fork the repo
-2. Create a feature branch
-3. Make your changes
-4. Run `flutter test` to ensure tests pass
-5. Submit a PR
-
----
-
-## License
-
-This project is provided as-is for educational purposes.
+If you are picking this up: the single highest-value change is adding
+screenshots. This is a mobile app whose entire value is visual, and the README
+currently shows none of it. Six images and a fifteen-second recording would do
+more than any refactor listed above.
