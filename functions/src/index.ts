@@ -5,8 +5,12 @@ import * as https from 'https';
 admin.initializeApp();
 const db = admin.firestore();
 
-const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
-const API_BASE = 'https://api.football-data.org/v4';
+// Bound to the functions that need it via `runWith({ secrets: [...] })` below.
+// Read lazily rather than at module load, so the value is resolved after Secret
+// Manager has injected it into the runtime environment.
+const FOOTBALL_DATA_API_KEY = 'FOOTBALL_DATA_API_KEY';
+const apiKey = (): string | undefined => process.env[FOOTBALL_DATA_API_KEY];
+
 const COMPETITION = 'PL';
 
 // ── HTTP request helper ────────────────────────────────────────────────────────
@@ -17,7 +21,7 @@ function apiRequest(path: string): Promise<any> {
     path: `/v4/${path}`,
     method: 'GET',
     headers: {
-      'X-Auth-Token': API_KEY,
+      'X-Auth-Token': apiKey(),
       'Content-Type': 'application/json',
     },
   };
@@ -90,79 +94,81 @@ function parseFixture(raw: any): ApiFixture {
 
 // ── Callable: syncFixtures ──────────────────────────────────────────────────────
 
-export const syncFixtures = functions.https.onCall(async (data, context) => {
-  if (!context.auth) {
-    throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
-  }
-
-  // Verify admin via admin_roles collection
-  const adminDoc = await db
-    .collection('admin_roles')
-    .doc(context.auth.uid)
-    .get();
-  if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
-    throw new functions.https.HttpsError(
-      'permission-denied',
-      'Admin access required'
-    );
-  }
-
-  if (!API_KEY) {
-    throw new functions.https.HttpsError(
-      'internal',
-      'API key not configured'
-    );
-  }
-
-  try {
-    // Fetch upcoming fixtures
-    const upcoming = await apiRequest(
-      `competitions/${COMPETITION}/matches?status=SCHEDULED,TIMED&limit=50`
-    );
-
-    const batch = db.batch();
-    const upcomingFixtures: ApiFixture[] = [];
-
-    for (const raw of upcoming.matches || []) {
-      const fixture = parseFixture(raw);
-      const docRef = db.collection('fixtures').doc(fixture.fixtureId);
-      batch.set(docRef, fixture, { merge: true });
-      if (fixture.status === 'upcoming') upcomingFixtures.push(fixture);
+export const syncFixtures = functions
+  .runWith({ secrets: [FOOTBALL_DATA_API_KEY] })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError('unauthenticated', 'Sign in required');
     }
 
-    // Fetch live + finished fixtures
-    const liveFinished = await apiRequest(
-      `competitions/${COMPETITION}/matches?status=FINISHED,IN_PLAY,PAUSED,HALFTIME&limit=100`
-    );
-
-    let updatedLiveFinished = 0;
-    for (const raw of liveFinished.matches || []) {
-      const fixture = parseFixture(raw);
-      const docRef = db.collection('fixtures').doc(fixture.fixtureId);
-      // Use set+merge instead of update to handle non-existent docs
-      batch.set(docRef, {
-        fixtureId: fixture.fixtureId,
-        homeTeam: fixture.homeTeam,
-        awayTeam: fixture.awayTeam,
-        kickoff: fixture.kickoff,
-        competition: fixture.competition,
-        status: fixture.status,
-        homeScore: fixture.homeScore,
-        awayScore: fixture.awayScore,
-      }, { merge: true });
-      updatedLiveFinished++;
+    // Verify admin via admin_roles collection
+    const adminDoc = await db
+      .collection('admin_roles')
+      .doc(context.auth.uid)
+      .get();
+    if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admin access required'
+      );
     }
 
-    await batch.commit();
+    if (!apiKey()) {
+      throw new functions.https.HttpsError(
+        'internal',
+        'API key not configured'
+      );
+    }
 
-    return {
-      upcoming: upcomingFixtures.length,
-      liveAndFinished: updatedLiveFinished,
-    };
-  } catch (error: any) {
-    throw new functions.https.HttpsError('internal', error.message);
-  }
-});
+    try {
+      // Fetch upcoming fixtures
+      const upcoming = await apiRequest(
+        `competitions/${COMPETITION}/matches?status=SCHEDULED,TIMED&limit=50`
+      );
+
+      const batch = db.batch();
+      const upcomingFixtures: ApiFixture[] = [];
+
+      for (const raw of upcoming.matches || []) {
+        const fixture = parseFixture(raw);
+        const docRef = db.collection('fixtures').doc(fixture.fixtureId);
+        batch.set(docRef, fixture, { merge: true });
+        if (fixture.status === 'upcoming') upcomingFixtures.push(fixture);
+      }
+
+      // Fetch live + finished fixtures
+      const liveFinished = await apiRequest(
+        `competitions/${COMPETITION}/matches?status=FINISHED,IN_PLAY,PAUSED,HALFTIME&limit=100`
+      );
+
+      let updatedLiveFinished = 0;
+      for (const raw of liveFinished.matches || []) {
+        const fixture = parseFixture(raw);
+        const docRef = db.collection('fixtures').doc(fixture.fixtureId);
+        // Use set+merge instead of update to handle non-existent docs
+        batch.set(docRef, {
+          fixtureId: fixture.fixtureId,
+          homeTeam: fixture.homeTeam,
+          awayTeam: fixture.awayTeam,
+          kickoff: fixture.kickoff,
+          competition: fixture.competition,
+          status: fixture.status,
+          homeScore: fixture.homeScore,
+          awayScore: fixture.awayScore,
+        }, { merge: true });
+        updatedLiveFinished++;
+      }
+
+      await batch.commit();
+
+      return {
+        upcoming: upcomingFixtures.length,
+        liveAndFinished: updatedLiveFinished,
+      };
+    } catch (error: any) {
+      throw new functions.https.HttpsError('internal', error.message);
+    }
+  });
 
 // ── Callable: checkAdmin ────────────────────────────────────────────────────────
 
@@ -249,7 +255,7 @@ export const scoreFixtureResults = functions.https.onCall(
 
     // Idempotency guard: skip if fixture is already scored
     const fixtureData = fixtureSnap.data();
-    if (fixtureData && fixtureData.status === 'finished') {
+    if (fixtureData?.status === 'finished') {
       return {
         skipped: true,
         message: 'Fixture already scored',
@@ -259,7 +265,7 @@ export const scoreFixtureResults = functions.https.onCall(
 
     // Update fixture with final score
     const batch = db.batch();
-    batch.update(fixtureSnap.reference, {
+    batch.update(fixtureSnap.ref as any, {
       homeScore,
       awayScore,
       status: 'finished',
@@ -288,7 +294,7 @@ export const scoreFixtureResults = functions.https.onCall(
         awayScore
       );
 
-      batch.update(doc.reference, {
+      batch.update(doc.ref as any, {
         pointsEarned: points,
         locked: true,
       });
@@ -306,7 +312,7 @@ export const scoreFixtureResults = functions.https.onCall(
     // -1 for users who didn't predict AND signed up before kickoff
     // (new users after kickoff shouldn't get penalized)
     const usersSnap = await db.collection('users').get();
-    const fixtureKickoff = fixtureData.kickoff.toDate();
+    const fixtureKickoff = fixtureData!.kickoff.toDate();
     for (let i = 0; i < usersSnap.docs.length; i += 500) {
       const batch2 = db.batch();
       const end = Math.min(i + 500, usersSnap.docs.length);
@@ -317,8 +323,8 @@ export const scoreFixtureResults = functions.https.onCall(
           const userData = userDoc.data();
           // Users without an explicit createdAt are old users — apply penalty
           const userCreatedAt = userData.createdAt?.toDate();
-          if (!userCreatedAt || userCreatedAt.isBefore(fixtureKickoff)) {
-            batch2.update(userDoc.reference, {
+          if (!userCreatedAt || userCreatedAt.getTime() < fixtureKickoff.getTime()) {
+            batch2.update(userDoc.ref as any, {
               totalPoints: admin.firestore.FieldValue.increment(-1),
               weeklyPoints: admin.firestore.FieldValue.increment(-1),
             });
@@ -358,15 +364,19 @@ function outcome(home: number, away: number): string {
   return 'draw';
 }
 
+// Exported for testing
+export { calculatePoints, outcome };
+
 // ── Scheduled: updateFixtureStatus ────────────────────────────────────────────
 // Runs every 10 minutes to update live/finished fixture statuses.
 // Requires Blaze plan for scheduled functions.
 
-export const updateFixtureStatus = functions.pubsub
-  .schedule('every 10 minutes from 09:00 to 22:00')
+export const updateFixtureStatus = functions
+  .runWith({ secrets: [FOOTBALL_DATA_API_KEY] })
+  .pubsub.schedule('every 10 minutes from 09:00 to 22:00')
   .timeZone('Europe/London')
   .onRun(async (context) => {
-    if (!API_KEY) {
+    if (!apiKey()) {
       console.warn('API key not configured, skipping sync');
       return null;
     }
@@ -382,11 +392,17 @@ export const updateFixtureStatus = functions.pubsub
       for (const raw of liveFinished.matches || []) {
         const fixture = parseFixture(raw);
         const docRef = db.collection('fixtures').doc(fixture.fixtureId);
-        batch.update(docRef, {
+        // set+merge handles docs that don't exist yet (e.g. first run before syncFixtures)
+        batch.set(docRef, {
+          fixtureId: fixture.fixtureId,
+          homeTeam: fixture.homeTeam,
+          awayTeam: fixture.awayTeam,
+          kickoff: fixture.kickoff,
+          competition: fixture.competition,
           status: fixture.status,
           homeScore: fixture.homeScore,
           awayScore: fixture.awayScore,
-        });
+        }, { merge: true });
         updated++;
       }
 
@@ -419,7 +435,7 @@ export const resetWeeklyPoints = functions.pubsub
       const batch = db.batch();
       const end = Math.min(i + 500, snap.docs.length);
       for (let j = i; j < end; j++) {
-        batch.update(snap.docs[j].reference, { weeklyPoints: 0 });
+         batch.update(snap.docs[j].ref as any, { weeklyPoints: 0 });
         count++;
       }
       await batch.commit();
