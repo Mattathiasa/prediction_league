@@ -217,7 +217,7 @@ Known gaps, tracked honestly rather than hidden:
 - **No account deletion**, which both stores require for apps with sign-in.
 - **No privacy policy or terms.**
 - **Android release builds are signed with the debug key.**
-- **No crash reporting or analytics.**
+- **No analytics**, so there is no funnel data to inform the paywall.
 
 The app is not store-ready. Those items are what stands between here and a
 submission.

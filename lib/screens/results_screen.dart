@@ -8,8 +8,18 @@ import '../services/fixture_service.dart';
 import '../services/scoring_service.dart';
 import '../theme/app_colors.dart';
 
-class ResultsScreen extends StatelessWidget {
+class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
+
+  @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  // Created once. Building this inside build() constructed a fresh service and
+  // a fresh stream on every rebuild, re-subscribing to Firestore each time.
+  late final Stream<List<FixtureModel>> _finishedFixtures =
+      FixtureService().finishedFixtures();
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +39,7 @@ class ResultsScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<List<FixtureModel>>(
-        stream: FixtureService().finishedFixtures(),
+        stream: _finishedFixtures,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -366,14 +367,35 @@ class _LeagueHeader extends StatelessWidget {
 
 // ── Weekly matchups ─────────────────────────────────────────────────────────────
 
-class _WeeklyMatchups extends StatelessWidget {
+class _WeeklyMatchups extends StatefulWidget {
   final String leagueId;
   const _WeeklyMatchups({required this.leagueId});
 
   @override
+  State<_WeeklyMatchups> createState() => _WeeklyMatchupsState();
+}
+
+class _WeeklyMatchupsState extends State<_WeeklyMatchups> {
+  // Resolved once per league. Calling this inside build() re-ran a league read
+  // plus a chunked fan-out over every member on each rebuild — and the parent
+  // rebuilds whenever any of four providers notifies.
+  late Future<List<LeagueMatchup>> _matchups = _load();
+
+  Future<List<LeagueMatchup>> _load() =>
+      LeagueService().getWeeklyMatchups(widget.leagueId);
+
+  @override
+  void didUpdateWidget(_WeeklyMatchups oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.leagueId != widget.leagueId) {
+      _matchups = _load();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<LeagueMatchup>>(
-      future: LeagueService().getWeeklyMatchups(leagueId),
+      future: _matchups,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
@@ -592,7 +614,7 @@ class _MatchupCard extends StatelessWidget {
 
 // ── League standings ──────────────────────────────────────────────────────────
 
-class _LeagueStandings extends StatelessWidget {
+class _LeagueStandings extends StatefulWidget {
   final LeagueModel league;
   final UserModel currentUser;
 
@@ -603,9 +625,29 @@ class _LeagueStandings extends StatelessWidget {
   });
 
   @override
+  State<_LeagueStandings> createState() => _LeagueStandingsState();
+}
+
+class _LeagueStandingsState extends State<_LeagueStandings> {
+  // Same reasoning as _WeeklyMatchups: up to twenty profile reads, previously
+  // re-issued on every rebuild.
+  late Future<List<UserModel>> _members = _load();
+
+  Future<List<UserModel>> _load() =>
+      context.read<LeagueProvider>().getLeagueMembers(widget.league.memberIds);
+
+  @override
+  void didUpdateWidget(_LeagueStandings oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.league.memberIds, widget.league.memberIds)) {
+      _members = _load();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<UserModel>>(
-      future: context.read<LeagueProvider>().getLeagueMembers(league.memberIds),
+      future: _members,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -665,7 +707,7 @@ class _LeagueStandings extends StatelessWidget {
                 itemBuilder: (context, i) => _MemberRow(
                   rank: i + 1,
                   member: members[i],
-                  currentUser: currentUser,
+                  currentUser: widget.currentUser,
                 ),
               ),
             ),

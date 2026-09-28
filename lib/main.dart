@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_app_check/firebase_app_check.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -22,11 +23,35 @@ import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
+  // runZonedGuarded catches errors raised outside the Flutter framework's own
+  // zone — async gaps in services, stream listeners, platform callbacks. Without
+  // it (and without Crashlytics at all, previously) a production crash was
+  // invisible: there was no reporting, no analytics and no error boundary.
+  await runZonedGuarded(_bootstrap, (error, stack) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+  });
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   tz.initializeTimeZones();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Debug builds would otherwise flood the dashboard with crashes from
+  // half-finished work.
+  await FirebaseCrashlytics.instance
+      .setCrashlyticsCollectionEnabled(!kDebugMode);
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+    return true;
+  };
 
   // Release builds attest with the real providers. Debug builds cannot — a
   // locally-signed APK fails Play Integrity — so without this branch every
