@@ -9,6 +9,7 @@ import '../providers/prediction_provider.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/step_button.dart';
 
 class PredictScreen extends StatefulWidget {
   final FixtureModel fixture;
@@ -522,7 +523,8 @@ class _ScoreStepper extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _StepBtn(
+        StepButton(
+          size: 38,
           icon: Icons.remove,
           onPressed: isLocked ? null : () => _change(-1),
         ),
@@ -551,45 +553,12 @@ class _ScoreStepper extends StatelessWidget {
             ],
           ),
         ),
-        _StepBtn(
+        StepButton(
+          size: 38,
           icon: Icons.add,
           onPressed: isLocked ? null : () => _change(1),
         ),
       ],
-    );
-  }
-}
-
-class _StepBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onPressed;
-  const _StepBtn({required this.icon, this.onPressed});
-
-  @override
-  Widget build(BuildContext context) {
-    final active = onPressed != null;
-    return GestureDetector(
-      onTap: onPressed,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: active
-              ? AppColors.accent.withValues(alpha: 0.12)
-              : Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: active
-                ? AppColors.accent.withValues(alpha: 0.4)
-                : Colors.white12,
-          ),
-        ),
-        child: Icon(
-          icon,
-          size: 18,
-          color: active ? AppColors.accent : Colors.white24,
-        ),
-      ),
     );
   }
 }
