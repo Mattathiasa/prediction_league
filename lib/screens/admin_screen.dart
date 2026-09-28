@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../models/fixture_model.dart';
 import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
-import '../services/league_service.dart';
 import '../services/notification_service.dart';
 
 class AdminScreen extends StatefulWidget {
@@ -16,7 +15,6 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   final FixtureService _fixtureService = FixtureService();
-  final LeagueService _leagueService = LeagueService();
 
   bool _isAdmin = false;
   bool _checkingAdmin = true;
@@ -32,7 +30,8 @@ class _AdminScreenState extends State<AdminScreen> {
   Future<void> _checkAdmin() async {
     setState(() => _checkingAdmin = true);
     try {
-      final result = await FirebaseFunctions.instance.httpsCallable('checkAdmin')();
+      final result =
+          await FirebaseFunctions.instance.httpsCallable('checkAdmin')();
       setState(() => _isAdmin = result.data['isAdmin'] as bool? ?? false);
       if (!_isAdmin && mounted) {
         Navigator.pop(context);
@@ -110,8 +109,7 @@ class _AdminScreenState extends State<AdminScreen> {
           ? Column(
               children: [
                 Expanded(
-                   child: _FixtureList(
-                       service: _fixtureService),
+                  child: _FixtureList(service: _fixtureService),
                 ),
                 _ResetWeeklyPointsBar(
                   resetting: _resetting,
@@ -137,8 +135,8 @@ class _AdminScreenState extends State<AdminScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white38)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
             style:
@@ -154,7 +152,9 @@ class _AdminScreenState extends State<AdminScreen> {
 
     setState(() => _resetting = true);
     try {
-      await _leagueService.resetWeeklyPoints();
+      await FirebaseFunctions.instance
+          .httpsCallable('resetWeeklyPointsNow')
+          .call<Map<String, dynamic>>();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -180,8 +180,7 @@ class _AdminScreenState extends State<AdminScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              'Synced ${result.length} upcoming fixtures'),
+          content: Text('Synced ${result.length} upcoming fixtures'),
           backgroundColor: const Color(0xFF4CAF50),
         ),
       );
@@ -242,17 +241,15 @@ class _FixtureList extends StatelessWidget {
           itemCount: fixtures.length,
           separatorBuilder: (_, __) => const SizedBox(height: 12),
           itemBuilder: (context, i) => _AdminFixtureCard(
-              fixture: fixtures[i],
-              onEnterResult: () =>
-                  _showResultSheet(context, fixtures[i]),
-            ),
+            fixture: fixtures[i],
+            onEnterResult: () => _showResultSheet(context, fixtures[i]),
+          ),
         );
       },
     );
   }
 
-  Future<void> _showResultSheet(
-      BuildContext context, FixtureModel fixture) {
+  Future<void> _showResultSheet(BuildContext context, FixtureModel fixture) {
     final currentUserId =
         Provider.of<AuthService>(context, listen: false).userModel?.uid;
     return showModalBottomSheet(
@@ -275,8 +272,7 @@ class _AdminFixtureCard extends StatelessWidget {
   final FixtureModel fixture;
   final VoidCallback onEnterResult;
 
-  const _AdminFixtureCard(
-      {required this.fixture, required this.onEnterResult});
+  const _AdminFixtureCard({required this.fixture, required this.onEnterResult});
 
   @override
   Widget build(BuildContext context) {
@@ -315,8 +311,7 @@ class _AdminFixtureCard extends StatelessWidget {
             onPressed: onEnterResult,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF4CAF50),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10)),
               minimumSize: Size.zero,
@@ -368,8 +363,8 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text('Confirm Result',
-            style: TextStyle(color: Colors.white)),
+        title:
+            const Text('Confirm Result', style: TextStyle(color: Colors.white)),
         content: Text(
           '${widget.fixture.homeTeam} $_home – $_away ${widget.fixture.awayTeam}\n\n'
           'This will score all predictions and update user points.',
@@ -378,8 +373,8 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel',
-                style: TextStyle(color: Colors.white38)),
+            child:
+                const Text('Cancel', style: TextStyle(color: Colors.white38)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -457,9 +452,7 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
           Text(
             '${widget.fixture.homeTeam} vs ${widget.fixture.awayTeam}',
             style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16),
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -505,8 +498,8 @@ class _ResultEntrySheetState extends State<_ResultEntrySheet> {
                       child: CircularProgressIndicator(
                           color: Colors.white, strokeWidth: 2.5))
                   : const Text('Submit Result',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                      style:
+                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -540,9 +533,7 @@ class _ScoreColumn extends StatelessWidget {
             '$value',
             textAlign: TextAlign.center,
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 40,
-                fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 40, fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 8),
@@ -582,8 +573,7 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
   final bool resetting;
   final VoidCallback onReset;
 
-  const _ResetWeeklyPointsBar(
-      {required this.resetting, required this.onReset});
+  const _ResetWeeklyPointsBar({required this.resetting, required this.onReset});
 
   @override
   Widget build(BuildContext context) {
@@ -591,7 +581,8 @@ class _ResetWeeklyPointsBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       decoration: BoxDecoration(
         color: const Color(0xFF0F0F1A),
-        border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        border: Border(
+            top: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
       ),
       child: Row(
         children: [

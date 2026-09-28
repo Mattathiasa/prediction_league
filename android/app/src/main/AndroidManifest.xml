@@ -32,6 +32,11 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Required by google_mobile_ads. Without it MobileAds.initialize()
+             throws at startup and the app cannot launch at all. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3210681117962880~9348060115" />
     </application>
 
     <queries>

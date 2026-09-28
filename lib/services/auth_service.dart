@@ -6,9 +6,10 @@ import 'package:cloud_functions/cloud_functions.dart';
 import '../models/user_model.dart';
 
 class AuthService extends ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+  final FirebaseFirestore _db;
+  final FirebaseFunctions _functions;
 
   UserModel? _userModel;
   bool _initialized = false;
@@ -16,6 +17,7 @@ class AuthService extends ChangeNotifier {
   String? _error;
   bool _isAdmin = false;
   bool _adminChecked = false;
+  String? _startupError;
 
   UserModel? get userModel => _userModel;
   bool get initialized => _initialized;
@@ -25,49 +27,88 @@ class AuthService extends ChangeNotifier {
   bool get isAdmin => _isAdmin;
   bool get adminChecked => _adminChecked;
 
+  /// Set when the app could not establish who is signed in — almost always a
+  /// network failure at cold start. The root widget shows a retry affordance
+  /// rather than spinning forever.
+  String? get startupError => _startupError;
+
   User? get _firebaseUser => _auth.currentUser;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  AuthService() {
+  AuthService({
+    FirebaseAuth? auth,
+    GoogleSignIn? googleSignIn,
+    FirebaseFirestore? db,
+    FirebaseFunctions? functions,
+  })  : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn(),
+        _db = db ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instance {
     _auth.authStateChanges().listen(_handleAuthChange);
   }
 
   Future<void> _handleAuthChange(User? firebaseUser) async {
-    if (firebaseUser != null) {
-      await firebaseUser.reload();
-      if (firebaseUser.emailVerified) {
-        await _fetchUserModel(firebaseUser.uid);
-        _checkAdmin();
+    // Every await below can throw offline. Without this guard the listener
+    // died before `_initialized` was ever set, leaving the app on a spinner
+    // with no way out — launching without a connection bricked it.
+    try {
+      _startupError = null;
+
+      if (firebaseUser != null) {
+        await firebaseUser.reload();
+        if (firebaseUser.emailVerified) {
+          await _fetchUserModel(firebaseUser.uid);
+          await _checkAdmin();
+        } else {
+          _clearSession();
+        }
       } else {
-        _userModel = null;
-        _isAdmin = false;
-        _adminChecked = false;
+        _clearSession();
       }
-    } else {
-      _userModel = null;
-      _isAdmin = false;
-      _adminChecked = false;
+    } catch (e) {
+      _startupError = 'Could not reach the server. Check your connection.';
+      _clearSession();
+    } finally {
+      _initialized = true;
+      notifyListeners();
     }
-    _initialized = true;
+  }
+
+  void _clearSession() {
+    _userModel = null;
+    _isAdmin = false;
+    _adminChecked = false;
+  }
+
+  /// Re-runs startup after a [startupError]. Safe to call repeatedly.
+  Future<void> retryStartup() async {
+    _initialized = false;
+    _startupError = null;
     notifyListeners();
+    await _handleAuthChange(_auth.currentUser);
   }
 
   Future<void> _checkAdmin() async {
     try {
-      final result = await FirebaseFunctions.instance.httpsCallable('checkAdmin')();
-      _isAdmin = result.data['isAdmin'] as bool? ?? false;
+      final result = await _functions.httpsCallable('checkAdmin')();
+      _isAdmin = (result.data as Map)['isAdmin'] as bool? ?? false;
     } catch (e) {
+      // Admin is a UI affordance only — every privileged callable re-verifies
+      // server-side — so a failure here degrades to "not an admin" rather than
+      // blocking sign-in.
       _isAdmin = false;
     }
     _adminChecked = true;
-    notifyListeners();
   }
 
   Future<void> _fetchUserModel(String uid) async {
     final snap = await _db.collection('users').doc(uid).get();
     if (snap.exists) {
       _userModel = UserModel.fromFirestore(snap.data()!, uid);
+    } else {
+      // Authenticated but no profile document: signing in again would loop, so
+      // surface it instead of silently bouncing back to the auth screen.
+      _userModel = null;
+      _startupError = 'Your profile could not be loaded. Try signing in again.';
     }
   }
 

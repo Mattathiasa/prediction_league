@@ -74,8 +74,7 @@ class _LeaderboardTab extends StatefulWidget {
   final String sortField;
   final String currentUserId;
 
-  const _LeaderboardTab(
-      {required this.sortField, required this.currentUserId});
+  const _LeaderboardTab({required this.sortField, required this.currentUserId});
 
   @override
   State<_LeaderboardTab> createState() => _LeaderboardTabState();
@@ -87,8 +86,11 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      // Reads /publicProfiles rather than /users: the latter is readable only
+      // by its owner, so this query was rejected outright and the leaderboard
+      // never rendered a single row.
       stream: FirebaseFirestore.instance
-          .collection('users')
+          .collection('publicProfiles')
           .orderBy(widget.sortField, descending: true)
           .limit(_limit)
           .snapshots(),
@@ -107,7 +109,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
         }
 
         final users = (snapshot.data?.docs ?? [])
-            .map((d) => UserModel.fromFirestore(d.data(), d.id))
+            .map((d) => UserModel.fromPublicProfile(d.data(), d.id))
             .toList();
 
         if (users.isEmpty) {
@@ -134,8 +136,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, i) {
             if (i == users.length) {
-              return _LoadMoreButton(
-                  onTap: () => setState(() => _limit += 20));
+              return _LoadMoreButton(onTap: () => setState(() => _limit += 20));
             }
             return _RankCard(
               rank: i + 1,
@@ -174,9 +175,8 @@ class _RankCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isCurrentUser
-            ? const Color(0xFF1E3A5F)
-            : const Color(0xFF1A1A2E),
+        color:
+            isCurrentUser ? const Color(0xFF1E3A5F) : const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isCurrentUser
@@ -202,30 +202,37 @@ class _RankCard extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           // Avatar
-          _MiniAvatar(
-              photoUrl: user.photoUrl, displayName: user.displayName),
+          _MiniAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
           const SizedBox(width: 12),
           // Name + accuracy
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isCurrentUser ? '${user.displayName} (you)' : user.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isCurrentUser ? Colors.white : Colors.white70,
-                    fontWeight: isCurrentUser
-                        ? FontWeight.bold
-                        : FontWeight.w500,
-                    fontSize: 14,
-                  ),
+                Row(
+                  children: [
+                    if (user.isPremium)
+                      const Icon(Icons.star,
+                          color: Color(0xFFFFD700), size: 12),
+                    if (user.isPremium) const SizedBox(width: 4),
+                    Text(
+                      isCurrentUser
+                          ? '${user.displayName} (you)'
+                          : user.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isCurrentUser ? Colors.white : Colors.white70,
+                        fontWeight:
+                            isCurrentUser ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   '${user.accuracy.toStringAsFixed(1)}% accuracy',
-                  style:
-                      const TextStyle(color: Colors.white38, fontSize: 11),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
             ),
@@ -302,10 +309,9 @@ class _LoadMoreButton extends StatelessWidget {
     return Center(
       child: TextButton.icon(
         onPressed: onTap,
-        icon: const Icon(Icons.expand_more,
-            color: Color(0xFF4CAF50), size: 18),
-        label: const Text('Load more',
-            style: TextStyle(color: Color(0xFF4CAF50))),
+        icon: const Icon(Icons.expand_more, color: Color(0xFF4CAF50), size: 18),
+        label:
+            const Text('Load more', style: TextStyle(color: Color(0xFF4CAF50))),
       ),
     );
   }

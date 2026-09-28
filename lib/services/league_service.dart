@@ -1,17 +1,23 @@
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../models/league_model.dart';
 import '../models/user_model.dart';
 import '../models/matchup_model.dart';
 
 class LeagueService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+  final FirebaseFunctions _functions;
+
+  LeagueService({FirebaseFirestore? db, FirebaseFunctions? functions})
+      : _db = db ?? FirebaseFirestore.instance,
+        _functions = functions ?? FirebaseFunctions.instance;
 
   // ── Invite code ────────────────────────────────────────────────────────────
 
   static const int maxLeagueMembers = 20;
 
-  String generateInviteCode() {
+  static String generateInviteCode() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final rng = Random.secure();
     return List.generate(6, (_) => chars[rng.nextInt(chars.length)]).join();
@@ -40,49 +46,23 @@ class LeagueService {
     return league;
   }
 
-  Future<LeagueModel> joinLeagueByCode({
-    required String code,
-    required String userId,
-  }) async {
-    final snap = await _db
-        .collection('leagues')
-        .where('inviteCode', isEqualTo: code.toUpperCase())
-        .limit(1)
-        .get();
-
-    if (snap.docs.isEmpty) {
-      throw Exception('No league found with that code. Check it and try again.');
+  /// Joins a league by invite code.
+  ///
+  /// Delegates to the `joinLeague` callable rather than writing directly:
+  /// finding a league by code requires reading a league the caller is not yet a
+  /// member of, and allowing that from the client would mean making every
+  /// league world-readable. The server also applies the member cap inside a
+  /// transaction, so two simultaneous joins cannot both pass at 19/20.
+  Future<String> joinLeagueByCode({required String code}) async {
+    try {
+      final result = await _functions
+          .httpsCallable('joinLeague')
+          .call<Map<String, dynamic>>(
+              {'inviteCode': code.trim().toUpperCase()});
+      return result.data['leagueId'] as String;
+    } on FirebaseFunctionsException catch (e) {
+      throw Exception(e.message ?? 'Could not join that league.');
     }
-
-    final doc = snap.docs.first;
-
-    // Use transaction to prevent race condition on member cap check
-    return _db.runTransaction((tx) async {
-      final leagueDoc = await tx.get(doc.reference);
-      final league = LeagueModel.fromFirestore(leagueDoc.data()!, leagueDoc.id);
-
-      if (league.memberIds.contains(userId)) {
-        throw Exception('You are already a member of "${league.name}".');
-      }
-
-      if (league.memberIds.length >= maxLeagueMembers) {
-        throw Exception(
-            'This league is full (${league.memberIds.length}/$maxLeagueMembers members).');
-      }
-
-      tx.update(doc.reference, {
-        'memberIds': FieldValue.arrayUnion([userId]),
-      });
-
-      return LeagueModel(
-        leagueId: league.leagueId,
-        name: league.name,
-        adminId: league.adminId,
-        memberIds: [...league.memberIds, userId],
-        inviteCode: league.inviteCode,
-        createdAt: league.createdAt,
-      );
-    });
   }
 
   // ── Streams ────────────────────────────────────────────────────────────────
@@ -98,27 +78,33 @@ class LeagueService {
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt)));
   }
 
-  // Fetches member UserModels for a league, sorted by totalPoints desc.
-  // Chunks into batches of 10 to respect Firestore's whereIn limit.
+  /// Firestore rejects a `whereIn` filter with more than 10 values.
+  static const int _whereInLimit = 10;
+
+  /// Fetches member profiles for a league, sorted by totalPoints desc.
+  ///
+  /// Reads `/publicProfiles`, not `/users` — the latter is readable only by its
+  /// owner, so this query used to be rejected outright and league standings
+  /// never rendered.
   Future<List<UserModel>> getLeagueMembers(List<String> memberIds) async {
     if (memberIds.isEmpty) return [];
 
     final chunks = <List<String>>[];
-    for (var i = 0; i < memberIds.length; i += 10) {
-      chunks.add(memberIds.sublist(
-          i, i + 10 > memberIds.length ? memberIds.length : i + 10));
+    for (var i = 0; i < memberIds.length; i += _whereInLimit) {
+      final end = (i + _whereInLimit).clamp(0, memberIds.length);
+      chunks.add(memberIds.sublist(i, end));
     }
 
-    final futures = chunks.map((chunk) => _db
-        .collection('users')
-        .where(FieldPath.documentId, whereIn: chunk)
-        .get());
-
-    final results = await Future.wait(futures);
+    final results = await Future.wait(
+      chunks.map((chunk) => _db
+          .collection('publicProfiles')
+          .where(FieldPath.documentId, whereIn: chunk)
+          .get()),
+    );
 
     return results
         .expand((snap) =>
-            snap.docs.map((d) => UserModel.fromFirestore(d.data(), d.id)))
+            snap.docs.map((d) => UserModel.fromPublicProfile(d.data(), d.id)))
         .toList()
       ..sort((a, b) => b.totalPoints.compareTo(a.totalPoints));
   }
@@ -172,25 +158,5 @@ class LeagueService {
     final league = LeagueModel.fromFirestore(leagueSnap.data()!, leagueSnap.id);
     final members = await getLeagueMembers(league.memberIds);
     return generateMatchups(members);
-  }
-
-  // ── Admin ──────────────────────────────────────────────────────────────────
-
-  Future<void> resetWeeklyPoints() async {
-    final snap = await _db.collection('users').get();
-    if (snap.docs.isEmpty) return;
-
-    // Split into batches of 500 (Firestore batch limit)
-    const batchSize = 500;
-    for (var i = 0; i < snap.docs.length; i += batchSize) {
-      final batch = _db.batch();
-      final end = (i + batchSize < snap.docs.length)
-          ? i + batchSize
-          : snap.docs.length;
-      for (final doc in snap.docs.sublist(i, end)) {
-        batch.update(doc.reference, {'weeklyPoints': 0});
-      }
-      await batch.commit();
-    }
   }
 }

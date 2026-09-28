@@ -67,13 +67,11 @@ class LeagueProvider extends ChangeNotifier {
     }
   }
 
-  Future<LeagueModel?> joinLeagueByCode({
-    required String code,
-    required String userId,
-  }) async {
+  /// Returns the joined league's id, or null if the join failed (see [error]).
+  Future<String?> joinLeagueByCode({required String code}) async {
     _error = null;
     try {
-      return await _service.joinLeagueByCode(code: code, userId: userId);
+      return await _service.joinLeagueByCode(code: code);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();
@@ -83,8 +81,6 @@ class LeagueProvider extends ChangeNotifier {
 
   Future<List<UserModel>> getLeagueMembers(List<String> memberIds) =>
       _service.getLeagueMembers(memberIds);
-
-  Future<void> resetWeeklyPoints() => _service.resetWeeklyPoints();
 
   @override
   void dispose() {

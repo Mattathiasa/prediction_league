@@ -660,23 +660,53 @@ export const updateFixtureStatus = functions
 // ── Scheduled: resetWeeklyPoints ──────────────────────────────────────────────
 // Runs every Monday at 07:00 to reset weekly points.
 
+async function resetAllWeeklyPoints(): Promise<number> {
+  const snap = await db.collection('users').get();
+  const stale = snap.docs.filter((d) => (d.data().weeklyPoints ?? 0) !== 0);
+
+  await commitInChunks(
+    stale.map((d) => (b: admin.firestore.WriteBatch) =>
+      b.update(d.ref, { weeklyPoints: 0 })
+    )
+  );
+
+  console.log(`Reset weekly points for ${stale.length} users`);
+  return stale.length;
+}
+
 export const resetWeeklyPoints = functions.pubsub
   .schedule('0 7 * * 1')
   .timeZone('Europe/London')
-  .onRun(async (context) => {
-    const snap = await db.collection('users').get();
+  .onRun(async () => {
+    await resetAllWeeklyPoints();
+    return null;
+  });
 
-    let count = 0;
-    for (let i = 0; i < snap.docs.length; i += 500) {
-      const batch = db.batch();
-      const end = Math.min(i + 500, snap.docs.length);
-      for (let j = i; j < end; j++) {
-         batch.update(snap.docs[j].ref as any, { weeklyPoints: 0 });
-        count++;
-      }
-      await batch.commit();
+// Manual escape hatch for the admin screen. Shares the scheduled job's
+// implementation rather than reimplementing it on the client, where the rules
+// (correctly) deny a client writing another user's points, and where an
+// unbounded `users` scan would run on a phone.
+export const resetWeeklyPointsNow = functions
+  .runWith({ enforceAppCheck: true })
+  .https.onCall(async (data, context) => {
+    if (!context.auth) {
+      throw new functions.https.HttpsError(
+        'unauthenticated',
+        'Sign in required'
+      );
     }
 
-    console.log(`Reset weekly points for ${count} users`);
-    return null;
+    const adminDoc = await db
+      .collection('admin_roles')
+      .doc(context.auth.uid)
+      .get();
+    if (!adminDoc.exists || !adminDoc.data()?.isAdmin) {
+      throw new functions.https.HttpsError(
+        'permission-denied',
+        'Admin access required'
+      );
+    }
+
+    const count = await resetAllWeeklyPoints();
+    return { count };
   });

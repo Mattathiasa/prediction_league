@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/league_provider.dart';
-import '../services/auth_service.dart';
 
 class JoinLeagueScreen extends StatefulWidget {
   const JoinLeagueScreen({super.key});
@@ -31,22 +30,21 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
     }
 
     setState(() => _joining = true);
-    final user = context.read<AuthService>().userModel!;
 
-    final result = await context.read<LeagueProvider>().joinLeagueByCode(
-          code: code,
-          userId: user.uid,
-        );
+    // The caller's uid comes from the auth context on the server, so it is not
+    // passed here.
+    final leagueId =
+        await context.read<LeagueProvider>().joinLeagueByCode(code: code);
 
     if (!mounted) return;
     setState(() => _joining = false);
 
-    if (result != null) {
-      Navigator.pop(context, result);
+    if (leagueId != null) {
+      Navigator.pop(context, leagueId);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Joined "${result.name}"!'),
-          backgroundColor: const Color(0xFF4CAF50),
+        const SnackBar(
+          content: Text('Joined the league!'),
+          backgroundColor: Color(0xFF4CAF50),
         ),
       );
     } else {
@@ -105,9 +103,7 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
               decoration: InputDecoration(
                 hintText: 'ABC123',
                 hintStyle: const TextStyle(
-                    color: Colors.white12,
-                    fontSize: 30,
-                    letterSpacing: 8),
+                    color: Colors.white12, fontSize: 30, letterSpacing: 8),
                 counterText: '',
                 filled: true,
                 fillColor: const Color(0xFF1A1A2E),
@@ -116,8 +112,7 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
                     borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide:
-                        const BorderSide(color: Color(0xFF4CAF50))),
+                    borderSide: const BorderSide(color: Color(0xFF4CAF50))),
               ),
               onSubmitted: (_) => _join(),
             ),
