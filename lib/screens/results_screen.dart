@@ -44,8 +44,7 @@ class ResultsScreen extends StatelessWidget {
           // Compute a quick summary from predictions for the visible fixtures only
           final visibleFixtureIds = fixtures.map((f) => f.fixtureId).toSet();
           final scored = predProvider.predictions.values
-              .where((p) =>
-                  p.locked && visibleFixtureIds.contains(p.fixtureId))
+              .where((p) => p.locked && visibleFixtureIds.contains(p.fixtureId))
               .toList();
           final totalEarned =
               scored.fold<int>(0, (sum, p) => sum + p.pointsEarned);
@@ -63,8 +62,8 @@ class ResultsScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final fixture = fixtures[i];
-                    final prediction = predProvider
-                        .predictionForFixture(fixture.fixtureId);
+                    final prediction =
+                        predProvider.predictionForFixture(fixture.fixtureId);
                     return _ResultCard(
                         fixture: fixture, prediction: prediction);
                   },
@@ -107,16 +106,12 @@ class _SummaryBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _SummaryStat(
-              label: 'Matches', value: '$finishedCount'),
+          _SummaryStat(label: 'Matches', value: '$finishedCount'),
+          _divider(),
+          _SummaryStat(label: 'Predicted', value: '$predictedCount'),
           _divider(),
           _SummaryStat(
-              label: 'Predicted', value: '$predictedCount'),
-          _divider(),
-          _SummaryStat(
-              label: 'Points earned',
-              value: '$pointsEarned',
-              highlight: true),
+              label: 'Points earned', value: '$pointsEarned', highlight: true),
         ],
       ),
     );
@@ -140,9 +135,7 @@ class _SummaryStat extends StatelessWidget {
       children: [
         Text(value,
             style: TextStyle(
-                color: highlight
-                    ? const Color(0xFF4CAF50)
-                    : Colors.white,
+                color: highlight ? const Color(0xFF4CAF50) : Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold)),
         const SizedBox(height: 2),
@@ -216,76 +209,77 @@ class _ResultCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-               // Prediction + points row
-           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               // My prediction
-               Row(
-                 children: [
-                   const Icon(Icons.person_outline,
-                       size: 14, color: Colors.white38),
-                   const SizedBox(width: 5),
-                   Text(
-                     prediction != null
-                         ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
-                         : 'No prediction',
-                     style: const TextStyle(
-                         color: Colors.white54, fontSize: 13),
-                   ),
-                 ],
-               ),
-               // Points badge + share button
-               Row(
-                 children: [
-                   // Points badge
-                   Container(
-                     padding:
-                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                     decoration: BoxDecoration(
-                       color: color.withValues(alpha: 0.12),
-                       borderRadius: BorderRadius.circular(8),
-                       border: Border.all(
-                           color: color.withValues(alpha: 0.45), width: 0.5),
-                     ),
-                     child: Row(
-                       mainAxisSize: MainAxisSize.min,
-                       children: [
-                         Text(
-                           pts >= 0 ? '+$pts' : '$pts',
-                           style: TextStyle(
-                               color: color,
-                               fontSize: 13,
-                               fontWeight: FontWeight.bold),
-                         ),
-                         const SizedBox(width: 5),
-                         Text(label,
-                             style: TextStyle(
-                                 color: color.withValues(alpha: 0.8),
-                                 fontSize: 11)),
-                       ],
-                     ),
-                   ),
-                   // Share button
-                    if (prediction != null)
-                     Padding(
-                       padding: const EdgeInsets.only(left: 8),
-                       child: GestureDetector(
-                         onTap: () => SharePlus.instance.share(
-                           ShareParams(
-                             text: '${prediction!.homeGuess}\u2013${prediction!.awayGuess} '
-                                 'for ${fixture.homeTeam} vs ${fixture.awayTeam} '
-                                 '(${fixture.homeScore ?? '?'}\u2013${fixture.awayScore ?? '?'}) '
-                                 '\u2192 $label ($pts pts)',
-                           ),
-                         ),
-                         child: const Icon(Icons.share, color: Colors.white38, size: 18),
-                       ),
-                     ),
-                 ],
-               ),
-             ],
-           ),
+          // Prediction + points row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // My prediction
+              Row(
+                children: [
+                  const Icon(Icons.person_outline,
+                      size: 14, color: Colors.white38),
+                  const SizedBox(width: 5),
+                  Text(
+                    prediction != null
+                        ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
+                        : 'No prediction',
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
+              ),
+              // Points badge + share button
+              Row(
+                children: [
+                  // Points badge
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                          color: color.withValues(alpha: 0.45), width: 0.5),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          pts >= 0 ? '+$pts' : '$pts',
+                          style: TextStyle(
+                              color: color,
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(label,
+                            style: TextStyle(
+                                color: color.withValues(alpha: 0.8),
+                                fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                  // Share button
+                  if (prediction != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: GestureDetector(
+                        onTap: () => SharePlus.instance.share(
+                          ShareParams(
+                            text:
+                                '${prediction!.homeGuess}\u2013${prediction!.awayGuess} '
+                                'for ${fixture.homeTeam} vs ${fixture.awayTeam} '
+                                '(${fixture.homeScore ?? '?'}\u2013${fixture.awayScore ?? '?'}) '
+                                '\u2192 $label ($pts pts)',
+                          ),
+                        ),
+                        child: const Icon(Icons.share,
+                            color: Colors.white38, size: 18),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );

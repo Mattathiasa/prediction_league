@@ -1,43 +1,88 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:prediction_league/models/fixture_model.dart';
+import 'package:prediction_league/models/matchup_model.dart';
+import 'package:prediction_league/models/user_model.dart';
 import 'package:prediction_league/models/prediction_model.dart';
 import 'package:prediction_league/services/scoring_service.dart';
+import 'package:prediction_league/services/league_service.dart';
 
 void main() {
   group('ScoringService', () {
     test('exact score returns 5 points', () {
-      expect(ScoringService.calculatePoints(homeGuess: 2, awayGuess: 1, homeScore: 2, awayScore: 1), 5);
-      expect(ScoringService.calculatePoints(homeGuess: 0, awayGuess: 0, homeScore: 0, awayScore: 0), 5);
-      expect(ScoringService.calculatePoints(homeGuess: 3, awayGuess: 2, homeScore: 3, awayScore: 2), 5);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 2, awayGuess: 1, homeScore: 2, awayScore: 1),
+          5);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 0, awayGuess: 0, homeScore: 0, awayScore: 0),
+          5);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 3, awayGuess: 2, homeScore: 3, awayScore: 2),
+          5);
     });
 
     test('correct result with correct goal difference returns 3 points', () {
-      expect(ScoringService.calculatePoints(homeGuess: 3, awayGuess: 1, homeScore: 2, awayScore: 0), 3);
-      expect(ScoringService.calculatePoints(homeGuess: 1, awayGuess: 3, homeScore: 0, awayScore: 2), 3);
-      expect(ScoringService.calculatePoints(homeGuess: 2, awayGuess: 2, homeScore: 1, awayScore: 1), 3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 3, awayGuess: 1, homeScore: 2, awayScore: 0),
+          3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 1, awayGuess: 3, homeScore: 0, awayScore: 2),
+          3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 2, awayGuess: 2, homeScore: 1, awayScore: 1),
+          3);
       // home win, same goal difference
-      expect(ScoringService.calculatePoints(homeGuess: 2, awayGuess: 1, homeScore: 1, awayScore: 0), 3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 2, awayGuess: 1, homeScore: 1, awayScore: 0),
+          3);
       // away win, same goal difference
-      expect(ScoringService.calculatePoints(homeGuess: 0, awayGuess: 2, homeScore: 1, awayScore: 3), 3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 0, awayGuess: 2, homeScore: 1, awayScore: 3),
+          3);
     });
 
     test('correct result only returns 1 point', () {
       // home win, different goal difference
-      expect(ScoringService.calculatePoints(homeGuess: 1, awayGuess: 0, homeScore: 3, awayScore: 1), 1);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 1, awayGuess: 0, homeScore: 3, awayScore: 1),
+          1);
       // away win, different goal difference
-      expect(ScoringService.calculatePoints(homeGuess: 0, awayGuess: 1, homeScore: 1, awayScore: 3), 1);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 0, awayGuess: 1, homeScore: 1, awayScore: 3),
+          1);
       // draw, different goal difference (impossible for draw but testing logic)
     });
 
     test('wrong result returns 0 points', () {
       // predicted home win, actual away win
-      expect(ScoringService.calculatePoints(homeGuess: 2, awayGuess: 1, homeScore: 1, awayScore: 2), 0);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 2, awayGuess: 1, homeScore: 1, awayScore: 2),
+          0);
       // predicted draw 0-0, actual draw 1-1 (correct result + correct GD = 3)
-      expect(ScoringService.calculatePoints(homeGuess: 0, awayGuess: 0, homeScore: 1, awayScore: 1), 3);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 0, awayGuess: 0, homeScore: 1, awayScore: 1),
+          3);
       // predicted home win, actual away win
-      expect(ScoringService.calculatePoints(homeGuess: 3, awayGuess: 0, homeScore: 0, awayScore: 3), 0);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 3, awayGuess: 0, homeScore: 0, awayScore: 3),
+          0);
       // predicted away win, actual home win
-      expect(ScoringService.calculatePoints(homeGuess: 0, awayGuess: 2, homeScore: 2, awayScore: 0), 0);
+      expect(
+          ScoringService.calculatePoints(
+              homeGuess: 0, awayGuess: 2, homeScore: 2, awayScore: 0),
+          0);
     });
 
     test('pointsLabel returns correct labels', () {
@@ -144,7 +189,9 @@ void main() {
         'status': 'SCHEDULED',
         'homeTeam': {'name': 'Arsenal FC', 'shortName': 'Arsenal'},
         'awayTeam': {'name': 'Chelsea FC', 'shortName': 'Chelsea'},
-        'score': {'fullTime': {'home': null, 'away': null}},
+        'score': {
+          'fullTime': {'home': null, 'away': null}
+        },
         'competition': {'name': 'Premier League'},
       };
 
@@ -165,7 +212,9 @@ void main() {
         'status': 'FINISHED',
         'homeTeam': {'name': 'Arsenal FC', 'shortName': 'Arsenal'},
         'awayTeam': {'name': 'Chelsea FC', 'shortName': 'Chelsea'},
-        'score': {'fullTime': {'home': 2, 'away': 1}},
+        'score': {
+          'fullTime': {'home': 2, 'away': 1}
+        },
         'competition': {'name': 'Premier League'},
       };
 
@@ -190,7 +239,8 @@ void main() {
         locked: false,
       );
 
-      final updated = original.copyWith(homeGuess: 2, awayGuess: 1, pointsEarned: 3, locked: true);
+      final updated = original.copyWith(
+          homeGuess: 2, awayGuess: 1, pointsEarned: 3, locked: true);
 
       expect(updated.homeGuess, 2);
       expect(updated.awayGuess, 1);
@@ -225,7 +275,79 @@ void main() {
       expect(restored.awayGuess, 1);
       expect(restored.pointsEarned, 3);
       expect(restored.locked, true);
-      expect(restored.submittedAt.millisecondsSinceEpoch, submittedAt.millisecondsSinceEpoch);
+      expect(restored.submittedAt.millisecondsSinceEpoch,
+          submittedAt.millisecondsSinceEpoch);
+    });
+  });
+
+  group('UserModel', () {
+    test('defaults isPremium to false', () {
+      const user = UserModel(uid: '1', displayName: 'Test', photoUrl: '');
+      expect(user.isPremium, false);
+      expect(user.predictionsCount, 0);
+      expect(user.exactScoreCount, 0);
+      expect(user.highestWeeklyPoints, 0);
+    });
+
+    test('toMap includes isPremium', () {
+      const user = UserModel(
+        uid: '1',
+        displayName: 'Test',
+        photoUrl: 'http://example.com',
+        isPremium: true,
+        totalPoints: 100,
+      );
+      final map = user.toMap();
+      expect(map['isPremium'], true);
+      expect(map['uid'], '1');
+      expect(map['totalPoints'], 100);
+    });
+
+    test('copyWith preserves isPremium', () {
+      const user = UserModel(
+        uid: '1',
+        displayName: 'Test',
+        photoUrl: '',
+        isPremium: true,
+      );
+      final copied = user.copyWith(displayName: 'Updated');
+      expect(copied.isPremium, true);
+      expect(copied.displayName, 'Updated');
+    });
+  });
+
+  group('LeagueService', () {
+    test('maxLeagueMembers is 20', () {
+      expect(LeagueService.maxLeagueMembers, 20);
+    });
+
+    test('generateInviteCode produces 6-character alphanumeric code', () {
+      final code = LeagueService.generateInviteCode();
+      expect(code.length, 6);
+      expect(RegExp(r'^[A-Z0-9]{6}$').hasMatch(code), true);
+    });
+  });
+
+  group('LeagueMatchup', () {
+    test('bye matchup returns BYE for resultText', () {
+      const matchup = LeagueMatchup(
+        home: UserModel(uid: '1', displayName: 'A', photoUrl: ''),
+        away: null,
+        isBye: true,
+      );
+      expect(matchup.resultText, 'BYE');
+      expect(matchup.isBye, true);
+    });
+
+    test('home win returns W for resultText', () {
+      const matchup = LeagueMatchup(
+        home: UserModel(
+            uid: '1', displayName: 'A', photoUrl: '', weeklyPoints: 20),
+        away: UserModel(
+            uid: '2', displayName: 'B', photoUrl: '', weeklyPoints: 10),
+      );
+      expect(matchup.resultText, 'W');
+      expect(matchup.homeWon, true);
     });
   });
 }

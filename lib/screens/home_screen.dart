@@ -135,14 +135,17 @@ class HomeScreen extends StatelessWidget {
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: const Color(0xFF1A1A2E),
-            title: const Text('Sign out?', style: TextStyle(color: Colors.white)),
+            title:
+                const Text('Sign out?', style: TextStyle(color: Colors.white)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancel', style: TextStyle(color: Colors.white60)),
+                child: const Text('Cancel',
+                    style: TextStyle(color: Colors.white60)),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.red[700]),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Sign out'),
               ),
@@ -194,12 +197,13 @@ class _ProfileCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(
                     color: const Color(0xFF4CAF50).withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: const Color(0xFF4CAF50), width: 0.5),
+                    border:
+                        Border.all(color: const Color(0xFF4CAF50), width: 0.5),
                   ),
                   child: Text(
                     '${user.totalPoints} pts total',
@@ -423,8 +427,8 @@ class _ResultsNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+          border:
+              Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
@@ -472,13 +476,12 @@ class _HistoryNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-              color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
+          border:
+              Border.all(color: const Color(0xFFFFD700).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
-            Icon(Icons.history,
-                color: Color(0xFFFFD700), size: 28),
+            Icon(Icons.history, color: Color(0xFFFFD700), size: 28),
             SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -521,18 +524,23 @@ class _LeaderboardNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF29B6F6).withValues(alpha: 0.3)),
+          border:
+              Border.all(color: const Color(0xFF29B6F6).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
-            Icon(Icons.leaderboard_outlined, color: Color(0xFF29B6F6), size: 28),
+            Icon(Icons.leaderboard_outlined,
+                color: Color(0xFF29B6F6), size: 28),
             SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Leaderboard',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
                   SizedBox(height: 2),
                   Text('All-time and weekly rankings',
                       style: TextStyle(color: Colors.white38, fontSize: 12)),
@@ -561,7 +569,8 @@ class _MyLeagueNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFFF7043).withValues(alpha: 0.3)),
+          border:
+              Border.all(color: const Color(0xFFFF7043).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [
@@ -572,7 +581,10 @@ class _MyLeagueNavCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('My League',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15)),
                   SizedBox(height: 2),
                   Text('Private leagues with friends',
                       style: TextStyle(color: Colors.white38, fontSize: 12)),
@@ -601,7 +613,8 @@ class _ProfileNavCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A2E),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFBDBDBD).withValues(alpha: 0.3)),
+          border:
+              Border.all(color: const Color(0xFFBDBDBD).withValues(alpha: 0.3)),
         ),
         child: const Row(
           children: [

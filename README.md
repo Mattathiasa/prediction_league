@@ -295,6 +295,18 @@ Test coverage includes:
 - `ScoringService.pointsLabel()` — label mapping
 - `FixtureModel` — `isLocked`, `isFinished`, `isLive`, `isUpcoming`, `fromApi()`, `fromFirestore()`
 - `PredictionModel` — `copyWith()` and Firestore round-trip serialization
+- `UserModel` — defaults, `toMap()`, `copyWith()`
+- `LeagueService` — `maxLeagueMembers` constant, `generateInviteCode()` format
+- `LeagueMatchup` — bye/win/loss result text logic
+
+### Function Tests (Cloud Functions)
+
+```bash
+cd functions
+npm test
+```
+
+Tests the pure scoring logic (`calculatePoints`, `outcome`) that mirrors the client-side `ScoringService`.
 
 ### Scoring Logic
 

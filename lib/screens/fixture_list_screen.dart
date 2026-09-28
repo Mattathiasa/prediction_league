@@ -53,13 +53,12 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                     color: Color(0xFF4CAF50), strokeWidth: 2),
               ),
             )
-          else
-            if (context.read<AuthService>().isAdmin)
-              IconButton(
-                icon: const Icon(Icons.sync, color: Colors.white70),
-                tooltip: 'Refresh from API',
-                onPressed: () => fixtureProvider.syncFixtures(),
-              ),
+          else if (context.read<AuthService>().isAdmin)
+            IconButton(
+              icon: const Icon(Icons.sync, color: Colors.white70),
+              tooltip: 'Refresh from API',
+              onPressed: () => fixtureProvider.syncFixtures(),
+            ),
         ],
       ),
       body: Column(
@@ -98,9 +97,8 @@ class _FixtureListScreenState extends State<FixtureListScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final fixture = fixtures[index];
-                      final prediction =
-                          predictionProvider.predictionForFixture(
-                              fixture.fixtureId);
+                      final prediction = predictionProvider
+                          .predictionForFixture(fixture.fixtureId);
                       return _FixtureCard(
                         fixture: fixture,
                         prediction: prediction,
@@ -192,19 +190,14 @@ class _FixtureCard extends StatelessWidget {
               children: [
                 Text(
                   fixture.competition,
-                  style:
-                      const TextStyle(color: Colors.white38, fontSize: 11),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
                 Row(
                   children: [
                     if (locked)
-                      const _Badge(
-                          label: 'LOCKED',
-                          color: Color(0xFFB71C1C))
+                      const _Badge(label: 'LOCKED', color: Color(0xFFB71C1C))
                     else
-                      const _Badge(
-                          label: 'OPEN',
-                          color: Color(0xFF4CAF50)),
+                      const _Badge(label: 'OPEN', color: Color(0xFF4CAF50)),
                     if (prediction != null) ...[
                       const SizedBox(width: 6),
                       _Badge(
@@ -241,9 +234,7 @@ class _KickoffChip extends StatelessWidget {
       child: Text(
         _label(),
         style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 13,
-            fontWeight: FontWeight.w600),
+            color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -336,12 +327,11 @@ class _FirestoreError extends StatelessWidget {
             const Icon(Icons.cloud_off, color: Colors.white24, size: 48),
             const SizedBox(height: 16),
             const Text('Firestore error',
-                style:
-                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Text(error,
-                style:
-                    const TextStyle(color: Colors.white38, fontSize: 12),
+                style: const TextStyle(color: Colors.white38, fontSize: 12),
                 textAlign: TextAlign.center),
             const SizedBox(height: 8),
             const Text(
@@ -368,12 +358,11 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(Icons.sports_soccer,
-              size: 64, color: Colors.white12),
+          const Icon(Icons.sports_soccer, size: 64, color: Colors.white12),
           const SizedBox(height: 16),
           const Text('No upcoming fixtures',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold)),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           const SizedBox(height: 6),
           const Text(
             'Tap sync to load from football-data.org',

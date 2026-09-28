@@ -78,12 +78,12 @@ class FixtureService {
         .where('status', whereIn: ['upcoming', 'live'])
         .snapshots()
         .map((snap) {
-      final list = snap.docs
-          .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
-          .toList()
-        ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
-      return list;
-    });
+          final list = snap.docs
+              .map((d) => FixtureModel.fromFirestore(d.data(), d.id))
+              .toList()
+            ..sort((a, b) => a.kickoff.compareTo(b.kickoff));
+          return list;
+        });
   }
 
   // Results screen: finished fixtures, newest first, client-side sort.

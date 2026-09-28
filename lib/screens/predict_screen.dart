@@ -35,8 +35,7 @@ class _PredictScreenState extends State<PredictScreen> {
   }
 
   void _recalcCountdown() {
-    final lockAt =
-        widget.fixture.kickoff.subtract(const Duration(hours: 1));
+    final lockAt = widget.fixture.kickoff.subtract(const Duration(hours: 1));
     final remaining = lockAt.difference(DateTime.now());
     setState(() {
       _timeToLock = remaining.isNegative ? Duration.zero : remaining;
@@ -99,8 +98,7 @@ class _PredictScreenState extends State<PredictScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
-      backgroundColor:
-          isError ? Colors.red.shade700 : const Color(0xFF4CAF50),
+      backgroundColor: isError ? Colors.red.shade700 : const Color(0xFF4CAF50),
     ));
   }
 
@@ -171,9 +169,9 @@ class _PredictScreenState extends State<PredictScreen> {
               ),
             if (locked && _existing != null)
               _LockedPredictionSummary(
-              prediction: _existing!,
-              fixture: widget.fixture,
-            ),
+                prediction: _existing!,
+                fixture: widget.fixture,
+              ),
           ],
         ),
       ),
@@ -192,8 +190,18 @@ class _MatchHeader extends StatelessWidget {
     final local = fixture.kickoff.toLocal();
     final weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
     final kickoffStr =
         '${weekdays[local.weekday - 1]} ${local.day} ${months[local.month - 1]}'
@@ -243,8 +251,7 @@ class _MatchHeader extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(kickoffStr,
-              style:
-                  const TextStyle(color: Colors.white54, fontSize: 13)),
+              style: const TextStyle(color: Colors.white54, fontSize: 13)),
         ],
       ),
     );
@@ -273,8 +280,7 @@ class _CountdownBanner extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.timer_outlined,
-              color: Color(0xFF4CAF50), size: 20),
+          const Icon(Icons.timer_outlined, color: Color(0xFF4CAF50), size: 20),
           const SizedBox(width: 10),
           const Text('Locks in ',
               style: TextStyle(color: Colors.white60, fontSize: 14)),
@@ -358,7 +364,8 @@ class _LockedPredictionSummary extends StatelessWidget {
           GestureDetector(
             onTap: () => SharePlus.instance.share(
               ShareParams(
-                text: 'I predicted ${prediction.homeGuess}\u2013${prediction.awayGuess} '
+                text:
+                    'I predicted ${prediction.homeGuess}\u2013${prediction.awayGuess} '
                     'for ${fixture.homeTeam} vs ${fixture.awayTeam}. '
                     'Join my Prediction League!',
               ),
@@ -403,9 +410,7 @@ class _ScoreCard extends StatelessWidget {
           Text(
             isLocked ? 'Your Prediction' : 'Enter Your Score',
             style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16),
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
           ),
           const SizedBox(height: 24),
           Row(
@@ -462,8 +467,7 @@ class _ScoreStepper extends StatelessWidget {
   final TextEditingController controller;
   final bool isLocked;
 
-  const _ScoreStepper(
-      {required this.controller, required this.isLocked});
+  const _ScoreStepper({required this.controller, required this.isLocked});
 
   void _change(int delta) {
     final current = int.tryParse(controller.text) ?? 0;
@@ -477,8 +481,7 @@ class _ScoreStepper extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _StepBtn(
-            icon: Icons.remove,
-            onPressed: isLocked ? null : () => _change(-1)),
+            icon: Icons.remove, onPressed: isLocked ? null : () => _change(-1)),
         Container(
           width: 60,
           margin: const EdgeInsets.symmetric(horizontal: 8),
@@ -489,9 +492,7 @@ class _ScoreStepper extends StatelessWidget {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.bold),
+                color: Colors.white, fontSize: 30, fontWeight: FontWeight.bold),
             decoration: const InputDecoration(
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
@@ -504,8 +505,7 @@ class _ScoreStepper extends StatelessWidget {
           ),
         ),
         _StepBtn(
-            icon: Icons.add,
-            onPressed: isLocked ? null : () => _change(1)),
+            icon: Icons.add, onPressed: isLocked ? null : () => _change(1)),
       ],
     );
   }

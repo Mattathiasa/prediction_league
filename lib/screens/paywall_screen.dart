@@ -16,8 +16,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId =
-          context.read<AuthService>().userModel?.uid;
+      final userId = context.read<AuthService>().userModel?.uid;
       final sub = context.read<SubscriptionService>();
       if (userId != null) sub.init(userId);
     });
@@ -181,7 +180,8 @@ class _ProductButton extends StatelessWidget {
   final SubscriptionService service;
   final String userId;
 
-  const _ProductButton({required this.product, required this.service, required this.userId});
+  const _ProductButton(
+      {required this.product, required this.service, required this.userId});
 
   @override
   Widget build(BuildContext context) {

@@ -81,14 +81,42 @@ class _ProfileHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
+        // Premium badge
+        if (user.isPremium)
+          Container(
+            margin: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFD700).withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: const Color(0xFFFFD700).withValues(alpha: 0.5),
+                  width: 0.5),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.star, color: Color(0xFFFFD700), size: 14),
+                SizedBox(width: 4),
+                Text(
+                  'PREMIUM',
+                  style: TextStyle(
+                    color: Color(0xFFFFD700),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
         // Points badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           decoration: BoxDecoration(
             color: const Color(0xFF4CAF50).withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
-            border:
-                Border.all(color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
+            border: Border.all(
+                color: const Color(0xFF4CAF50).withValues(alpha: 0.4)),
           ),
           child: Text(
             '${user.totalPoints} pts total',
@@ -156,8 +184,8 @@ class _StatsRow extends StatelessWidget {
     );
   }
 
-  Widget _divider() =>
-      Container(width: 1, height: 40, color: Colors.white.withValues(alpha: 0.08));
+  Widget _divider() => Container(
+      width: 1, height: 40, color: Colors.white.withValues(alpha: 0.08));
 }
 
 class _Stat extends StatelessWidget {
@@ -247,7 +275,9 @@ class _BadgeCard extends StatelessWidget {
         color: const Color(0xFF1A1A2E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: earned ? info.color.withValues(alpha: 0.4) : Colors.white.withValues(alpha: 0.05)),
+            color: earned
+                ? info.color.withValues(alpha: 0.4)
+                : Colors.white.withValues(alpha: 0.05)),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -274,7 +304,8 @@ class _BadgeCard extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             earned ? info.description : '???',
-            style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 10),
+            style: TextStyle(
+                color: textColor.withValues(alpha: 0.7), fontSize: 10),
             textAlign: TextAlign.center,
             maxLines: 2,
           ),

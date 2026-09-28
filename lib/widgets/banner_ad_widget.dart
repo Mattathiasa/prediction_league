@@ -66,6 +66,7 @@ class ConditionalBannerAd extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isPremium) return const SizedBox.shrink();
-    return const Align(alignment: Alignment.bottomCenter, child: BannerAdWidget());
+    return const Align(
+        alignment: Alignment.bottomCenter, child: BannerAdWidget());
   }
 }

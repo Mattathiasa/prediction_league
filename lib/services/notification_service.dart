@@ -30,10 +30,10 @@ class NotificationService {
         .resolvePlatformSpecificImplementation<
             IOSFlutterLocalNotificationsPlugin>()
         ?.requestPermissions(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
+          alert: true,
+          badge: true,
+          sound: true,
+        );
   }
 
   // ── Match reminder (scheduled 1 hr before kickoff) ────────────────────────
@@ -92,7 +92,8 @@ class NotificationService {
     final String body;
     if (pointsEarned != null) {
       final sign = pointsEarned >= 0 ? '+' : '';
-      body = '$sign$pointsEarned pts — ${ScoringService.pointsLabel(pointsEarned)}';
+      body =
+          '$sign$pointsEarned pts — ${ScoringService.pointsLabel(pointsEarned)}';
     } else {
       body = 'All predictions have been scored!';
     }

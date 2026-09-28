@@ -20,7 +20,7 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
   @override
   void initState() {
     super.initState();
-    _previewCode = LeagueService().generateInviteCode();
+    _previewCode = LeagueService.generateInviteCode();
   }
 
   @override
@@ -138,8 +138,8 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
-                  onPressed: () => setState(() =>
-                      _previewCode = LeagueService().generateInviteCode()),
+                  onPressed: () => setState(
+                      () => _previewCode = LeagueService.generateInviteCode()),
                   icon: const Icon(Icons.refresh,
                       size: 15, color: Colors.white38),
                   label: const Text('New code',
@@ -185,8 +185,9 @@ class _CreateLeagueScreenState extends State<CreateLeagueScreen> {
         counterStyle: const TextStyle(color: Colors.white24),
         filled: true,
         fillColor: const Color(0xFF1A1A2E),
-        border:
-            OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFF4CAF50))),

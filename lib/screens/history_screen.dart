@@ -79,18 +79,20 @@ class _SummaryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final totalPoints = entries.fold<int>(0, (sum, e) => sum + e.prediction.pointsEarned);
+    final totalPoints =
+        entries.fold<int>(0, (sum, e) => sum + e.prediction.pointsEarned);
     final correctResults = entries
-        .where((e) => ScoringService.calculatePoints(
+        .where((e) =>
+            ScoringService.calculatePoints(
               homeGuess: e.prediction.homeGuess,
               awayGuess: e.prediction.awayGuess,
               homeScore: e.fixture?.homeScore ?? 0,
               awayScore: e.fixture?.awayScore ?? 0,
-            ) > 0)
+            ) >
+            0)
         .length;
-    final exactScores = entries
-        .where((e) => e.prediction.pointsEarned == 5)
-        .length;
+    final exactScores =
+        entries.where((e) => e.prediction.pointsEarned == 5).length;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -106,12 +108,21 @@ class _SummaryHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _StatItem(label: 'Total Pts', value: '$totalPoints',
-              color: const Color(0xFFFFD700), icon: Icons.star_rounded),
-          _StatItem(label: 'Correct Results', value: '$correctResults/${entries.length}',
-              color: const Color(0xFF4CAF50), icon: Icons.track_changes_rounded),
-          _StatItem(label: 'Exact Scores', value: '$exactScores',
-              color: const Color(0xFF29B6F6), icon: Icons.emoji_events),
+          _StatItem(
+              label: 'Total Pts',
+              value: '$totalPoints',
+              color: const Color(0xFFFFD700),
+              icon: Icons.star_rounded),
+          _StatItem(
+              label: 'Correct Results',
+              value: '$correctResults/${entries.length}',
+              color: const Color(0xFF4CAF50),
+              icon: Icons.track_changes_rounded),
+          _StatItem(
+              label: 'Exact Scores',
+              value: '$exactScores',
+              color: const Color(0xFF29B6F6),
+              icon: Icons.emoji_events),
         ],
       ),
     );
@@ -123,7 +134,11 @@ class _StatItem extends StatelessWidget {
   final String value;
   final Color color;
   final IconData icon;
-  const _StatItem({required this.label, required this.value, required this.color, required this.icon});
+  const _StatItem(
+      {required this.label,
+      required this.value,
+      required this.color,
+      required this.icon});
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +148,9 @@ class _StatItem extends StatelessWidget {
         const SizedBox(height: 6),
         Text(value,
             style: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18)),
         Text(label,
             style: const TextStyle(color: Colors.white38, fontSize: 11)),
       ],
@@ -261,7 +278,8 @@ class _HistoryCard extends StatelessWidget {
                         fontSize: 18),
                   ),
                   Text(label,
-                      style: TextStyle(color: color.withValues(alpha: 0.7), fontSize: 10)),
+                      style: TextStyle(
+                          color: color.withValues(alpha: 0.7), fontSize: 10)),
                 ],
               ),
               Text(dateStr,
@@ -286,8 +304,8 @@ class _EmptyHistory extends StatelessWidget {
           Icon(Icons.history, size: 64, color: Colors.white12),
           SizedBox(height: 16),
           Text('No prediction history yet',
-              style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.bold)),
+              style:
+                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
           SizedBox(height: 6),
           Text('Your scored predictions will appear here',
               style: TextStyle(color: Colors.white38, fontSize: 13)),

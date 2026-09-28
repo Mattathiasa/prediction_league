@@ -51,11 +51,15 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
               color: const Color(0xFF1A1A2E),
               onSelected: (v) {
                 if (v == 'join') {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const JoinLeagueScreen()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const JoinLeagueScreen()));
                 } else if (v == 'create') {
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const CreateLeagueScreen()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const CreateLeagueScreen()));
                 }
               },
               itemBuilder: (_) => [
@@ -96,16 +100,16 @@ class _MyLeagueScreenState extends State<MyLeagueScreen> {
                         selected: effective,
                         onSelect: (l) => setState(() => _selected = l),
                       ),
-                     // League info header
-                     _LeagueHeader(league: effective),
-                     // Weekly matchups
-                     _WeeklyMatchups(leagueId: effective.leagueId),
-                     // Standings
-                     Expanded(
-                       child: _LeagueStandings(
-                         key: ValueKey(effective.leagueId),
-                         league: effective,
-                         currentUser: currentUser,
+                    // League info header
+                    _LeagueHeader(league: effective),
+                    // Weekly matchups
+                    _WeeklyMatchups(leagueId: effective.leagueId),
+                    // Standings
+                    Expanded(
+                      child: _LeagueStandings(
+                        key: ValueKey(effective.leagueId),
+                        league: effective,
+                        currentUser: currentUser,
                       ),
                     ),
                   ],
@@ -148,8 +152,7 @@ class _EmptyLeague extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const CreateLeagueScreen()),
+                  MaterialPageRoute(builder: (_) => const CreateLeagueScreen()),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4CAF50),
@@ -158,8 +161,8 @@ class _EmptyLeague extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.add),
                 label: const Text('Create a League',
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
             const SizedBox(height: 12),
@@ -169,20 +172,18 @@ class _EmptyLeague extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.push(
                   context,
-                  MaterialPageRoute(
-                      builder: (_) => const JoinLeagueScreen()),
+                  MaterialPageRoute(builder: (_) => const JoinLeagueScreen()),
                 ),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF4CAF50),
-                  side:
-                      const BorderSide(color: Color(0xFF4CAF50), width: 0.8),
+                  side: const BorderSide(color: Color(0xFF4CAF50), width: 0.8),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                 ),
                 icon: const Icon(Icons.group_add),
                 label: const Text('Join with a Code',
-                    style: TextStyle(
-                        fontSize: 15, fontWeight: FontWeight.bold)),
+                    style:
+                        TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
               ),
             ),
           ],
@@ -200,9 +201,7 @@ class _LeaguePicker extends StatelessWidget {
   final void Function(LeagueModel) onSelect;
 
   const _LeaguePicker(
-      {required this.leagues,
-      required this.selected,
-      required this.onSelect});
+      {required this.leagues, required this.selected, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -256,8 +255,7 @@ class _LeagueHeader extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.shield_outlined,
-              color: Color(0xFF4CAF50), size: 28),
+          const Icon(Icons.shield_outlined, color: Color(0xFF4CAF50), size: 28),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -270,8 +268,8 @@ class _LeagueHeader extends StatelessWidget {
                         fontSize: 16)),
                 const SizedBox(height: 2),
                 Text('${league.memberIds.length} members',
-                    style: const TextStyle(
-                        color: Colors.white38, fontSize: 12)),
+                    style:
+                        const TextStyle(color: Colors.white38, fontSize: 12)),
               ],
             ),
           ),
@@ -287,8 +285,7 @@ class _LeagueHeader extends StatelessWidget {
               );
             },
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: const Color(0xFF4CAF50).withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
@@ -309,8 +306,7 @@ class _LeagueHeader extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 5),
-                  const Icon(Icons.copy,
-                      size: 13, color: Color(0xFF4CAF50)),
+                  const Icon(Icons.copy, size: 13, color: Color(0xFF4CAF50)),
                 ],
               ),
             ),
@@ -410,7 +406,9 @@ class _MatchupCard extends StatelessWidget {
               child: Text(
                 '${matchup.home.displayName} (BYE)',
                 style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -478,7 +476,8 @@ class _MatchupCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(width: 6),
-                _MiniAvatar(photoUrl: home.photoUrl, displayName: home.displayName),
+                _MiniAvatar(
+                    photoUrl: home.photoUrl, displayName: home.displayName),
               ],
             ),
           ),
@@ -494,7 +493,8 @@ class _MatchupCard extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
-                _MiniAvatar(photoUrl: away.photoUrl, displayName: away.displayName),
+                _MiniAvatar(
+                    photoUrl: away.photoUrl, displayName: away.displayName),
                 const SizedBox(width: 6),
                 Text(
                   away.displayName,
@@ -573,9 +573,7 @@ class _LeagueStandings extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<UserModel>>(
-      future: context
-          .read<LeagueProvider>()
-          .getLeagueMembers(league.memberIds),
+      future: context.read<LeagueProvider>().getLeagueMembers(league.memberIds),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
@@ -600,21 +598,19 @@ class _LeagueStandings extends StatelessWidget {
                   SizedBox(width: 42),
                   Expanded(
                       child: Text('Player',
-                          style: TextStyle(
-                              color: Colors.white38, fontSize: 11))),
+                          style:
+                              TextStyle(color: Colors.white38, fontSize: 11))),
                   SizedBox(
                     width: 52,
                     child: Text('Pts',
                         textAlign: TextAlign.right,
-                        style:
-                            TextStyle(color: Colors.white38, fontSize: 11)),
+                        style: TextStyle(color: Colors.white38, fontSize: 11)),
                   ),
                   SizedBox(
                     width: 52,
                     child: Text('vs You',
                         textAlign: TextAlign.right,
-                        style:
-                            TextStyle(color: Colors.white38, fontSize: 11)),
+                        style: TextStyle(color: Colors.white38, fontSize: 11)),
                   ),
                 ],
               ),
@@ -644,9 +640,7 @@ class _MemberRow extends StatelessWidget {
   final UserModel currentUser;
 
   const _MemberRow(
-      {required this.rank,
-      required this.member,
-      required this.currentUser});
+      {required this.rank, required this.member, required this.currentUser});
 
   @override
   Widget build(BuildContext context) {
@@ -684,8 +678,7 @@ class _MemberRow extends StatelessWidget {
           SizedBox(
             width: 24,
             child: rank <= 3
-                ? Icon(Icons.emoji_events,
-                    color: _rankColor(rank), size: 18)
+                ? Icon(Icons.emoji_events, color: _rankColor(rank), size: 18)
                 : Text('#$rank',
                     style: const TextStyle(
                         color: Colors.white38,
@@ -705,8 +698,7 @@ class _MemberRow extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: isMe ? Colors.white : Colors.white70,
-                fontWeight:
-                    isMe ? FontWeight.bold : FontWeight.normal,
+                fontWeight: isMe ? FontWeight.bold : FontWeight.normal,
                 fontSize: 13,
               ),
             ),
