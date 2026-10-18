@@ -73,8 +73,14 @@ class LeagueProvider extends ChangeNotifier {
   /// Returns the joined league's id, or null if the join failed (see [error]).
   Future<String?> joinLeagueByCode({required String code}) async {
     _error = null;
+    final userId = _currentUserId;
+    if (userId == null) {
+      _error = 'Sign in required';
+      notifyListeners();
+      return null;
+    }
     try {
-      return await _service.joinLeagueByCode(code: code);
+      return await _service.joinLeagueByCode(code: code, userId: userId);
     } catch (e) {
       _error = e.toString().replaceFirst('Exception: ', '');
       notifyListeners();

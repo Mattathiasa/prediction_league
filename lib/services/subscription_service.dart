@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 
@@ -83,13 +82,27 @@ class SubscriptionService extends ChangeNotifier {
     }
   }
 
+  // There is no setPremium Cloud Function on the Spark plan, so the client
+  // grants itself premium directly. firestore.rules only allows this
+  // transition false → true and nothing else in the same write — the same
+  // "only ever grants, never revokes" invariant the callable used to
+  // enforce — and there is still no receipt verification or expiry; see
+  // README's known gaps.
   Future<void> _savePremiumToFirestore(String userId) async {
-    // setPremium resolves the uid from the auth context server-side; the
-    // userId parameter is only used by the caller to scope its own state.
+    // Already granted — restorePurchases re-fires on every launch, and the
+    // rule only allows the false → true transition, so a repeat write here
+    // would be denied every time rather than being the harmless no-op it
+    // should be.
+    if (_isPremium) return;
+
     try {
-      await FirebaseFunctions.instance
-          .httpsCallable('setPremium')
-          .call<Map<String, dynamic>>();
+      final batch = _db.batch();
+      batch.update(_db.collection('users').doc(userId), {'isPremium': true});
+      batch.update(
+        _db.collection('publicProfiles').doc(userId),
+        {'isPremium': true},
+      );
+      await batch.commit();
     } catch (e) {
       // The grant did not land. Previously _isPremium was set regardless of
       // whether this threw, so cancelling a purchase offline handed out

@@ -1,6 +1,10 @@
-import 'package:cloud_functions/cloud_functions.dart';
-import 'package:flutter/material.dart';
+import 'dart:async';
 
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../services/admin_service.dart';
+import '../services/auth_service.dart';
 import '../services/fixture_service.dart';
 import '../theme/app_colors.dart';
 import 'admin/admin_widgets.dart';
@@ -14,6 +18,7 @@ class AdminScreen extends StatefulWidget {
 
 class _AdminScreenState extends State<AdminScreen> {
   final FixtureService _fixtureService = FixtureService();
+  final AdminService _adminService = AdminService();
 
   bool _isAdmin = false;
   bool _checkingAdmin = true;
@@ -26,35 +31,34 @@ class _AdminScreenState extends State<AdminScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _checkAdmin());
   }
 
+  // AuthService already resolved isAdmin against admin_roles (replacing the
+  // old checkAdmin callable) by the time this screen can be reached — reuse
+  // it rather than re-checking.
   Future<void> _checkAdmin() async {
-    setState(() => _checkingAdmin = true);
-    try {
-      final result = await FirebaseFunctions.instance
-          .httpsCallable('checkAdmin')
-          .call<Map<String, dynamic>>();
-      if (!mounted) return;
-      setState(() => _isAdmin = result.data['isAdmin'] as bool? ?? false);
-      if (!_isAdmin && mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Admin access required'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
+    final auth = context.read<AuthService>();
+    final isAdmin = auth.adminChecked ? auth.isAdmin : false;
+
+    if (!mounted) return;
+    setState(() {
+      _isAdmin = isAdmin;
+      _checkingAdmin = false;
+    });
+
+    if (!isAdmin) {
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Admin check failed: $e'),
+        const SnackBar(
+          content: Text('Admin access required'),
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      if (mounted) setState(() => _checkingAdmin = false);
+      return;
     }
+
+    // Opportunistic weekly reset — there is no scheduler on Spark, so this
+    // runs the Monday reset the first time an admin opens this screen in a
+    // new ISO week instead. See AdminService.
+    unawaited(_adminService.maybeAutoResetWeeklyPoints());
   }
 
   @override
@@ -158,9 +162,7 @@ class _AdminScreenState extends State<AdminScreen> {
 
     setState(() => _resetting = true);
     try {
-      await FirebaseFunctions.instance
-          .httpsCallable('resetWeeklyPointsNow')
-          .call<Map<String, dynamic>>();
+      await _adminService.resetWeeklyPointsNow();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

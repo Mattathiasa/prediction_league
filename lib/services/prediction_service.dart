@@ -53,10 +53,10 @@ class PredictionService {
       await ref.set(prediction.toMap());
     }
 
-    // Badges are awarded server-side by scoreFixtureResults. The client write
-    // that used to live here could never succeed: firestore.rules restricts
-    // user updates to displayName and photoUrl, so it threw an uncaught async
-    // permission error on every single prediction.
+    // Badges are awarded by FixtureService.scoreFixtureResults, run by the
+    // admin device when a fixture is scored — not here. A client write to
+    // badgeIds from this method would be denied by firestore.rules, which
+    // only allows that field to change via the admin-gated branch.
   }
 
   Stream<List<PredictionModel>> userPredictions(String userId) {

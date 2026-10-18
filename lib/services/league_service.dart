@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 
 import '../models/league_model.dart';
 import '../models/matchup_model.dart';
@@ -12,15 +11,10 @@ class LeagueService {
   // the service does not require an initialised Firebase app — the pure helpers
   // below can then be exercised in a plain unit test.
   final FirebaseFirestore? _dbOverride;
-  final FirebaseFunctions? _functionsOverride;
 
-  LeagueService({FirebaseFirestore? db, FirebaseFunctions? functions})
-      : _dbOverride = db,
-        _functionsOverride = functions;
+  LeagueService({FirebaseFirestore? db}) : _dbOverride = db;
 
   FirebaseFirestore get _db => _dbOverride ?? FirebaseFirestore.instance;
-  FirebaseFunctions get _functions =>
-      _functionsOverride ?? FirebaseFunctions.instance;
 
   // ── Invite code ────────────────────────────────────────────────────────────
 
@@ -57,20 +51,56 @@ class LeagueService {
 
   /// Joins a league by invite code.
   ///
-  /// Delegates to the `joinLeague` callable rather than writing directly:
-  /// finding a league by code requires reading a league the caller is not yet a
-  /// member of, and allowing that from the client would mean making every
-  /// league world-readable. The server also applies the member cap inside a
-  /// transaction, so two simultaneous joins cannot both pass at 19/20.
-  Future<String> joinLeagueByCode({required String code}) async {
+  /// There is no Cloud Function layer on the Spark plan, so this reads the
+  /// league directly — firestore.rules relaxes league reads to any signed-in
+  /// user precisely so this lookup works, since leagues hold nothing
+  /// sensitive and the invite code remains the real gate. The actual join is
+  /// a client transaction so a concurrent join from someone else is handled
+  /// by Firestore's normal optimistic-concurrency retry; the rules' hard
+  /// `memberIds.size() <= 20` check is what actually prevents two joins both
+  /// landing at 19/20, not this pre-check.
+  Future<String> joinLeagueByCode({
+    required String code,
+    required String userId,
+  }) async {
+    final inviteCode = code.trim().toUpperCase();
+    if (!RegExp(r'^[A-Z0-9]{6}$').hasMatch(inviteCode)) {
+      throw Exception('Invite codes are 6 letters or digits');
+    }
+
+    final matches = await _db
+        .collection('leagues')
+        .where('inviteCode', isEqualTo: inviteCode)
+        .limit(1)
+        .get();
+
+    if (matches.docs.isEmpty) {
+      throw Exception('No league found with that code');
+    }
+
+    final leagueRef = matches.docs.first.reference;
+
     try {
-      final result = await _functions
-          .httpsCallable('joinLeague')
-          .call<Map<String, dynamic>>(
-        {'inviteCode': code.trim().toUpperCase()},
-      );
-      return result.data['leagueId'] as String;
-    } on FirebaseFunctionsException catch (e) {
+      return await _db.runTransaction<String>((tx) async {
+        final snap = await tx.get(leagueRef);
+        if (!snap.exists) {
+          throw Exception('League no longer exists');
+        }
+
+        final memberIds =
+            List<String>.from(snap.data()?['memberIds'] as List? ?? const []);
+        if (memberIds.contains(userId)) return snap.id;
+
+        if (memberIds.length >= maxLeagueMembers) {
+          throw Exception('This league is full ($maxLeagueMembers members)');
+        }
+
+        tx.update(leagueRef, {
+          'memberIds': FieldValue.arrayUnion([userId]),
+        });
+        return snap.id;
+      });
+    } on FirebaseException catch (e) {
       throw Exception(e.message ?? 'Could not join that league.');
     }
   }

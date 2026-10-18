@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -10,7 +9,6 @@ class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth;
   final GoogleSignIn _googleSignIn;
   final FirebaseFirestore _db;
-  final FirebaseFunctions _functions;
 
   UserModel? _userModel;
   bool _initialized = false;
@@ -39,11 +37,9 @@ class AuthService extends ChangeNotifier {
     FirebaseAuth? auth,
     GoogleSignIn? googleSignIn,
     FirebaseFirestore? db,
-    FirebaseFunctions? functions,
   })  : _auth = auth ?? FirebaseAuth.instance,
         _googleSignIn = googleSignIn ?? GoogleSignIn(),
-        _db = db ?? FirebaseFirestore.instance,
-        _functions = functions ?? FirebaseFunctions.instance {
+        _db = db ?? FirebaseFirestore.instance {
     _auth.authStateChanges().listen(_handleAuthChange);
   }
 
@@ -58,7 +54,7 @@ class AuthService extends ChangeNotifier {
         await firebaseUser.reload();
         if (firebaseUser.emailVerified) {
           await _fetchUserModel(firebaseUser.uid);
-          await _checkAdmin();
+          await _checkAdmin(firebaseUser.uid);
         } else {
           _clearSession();
         }
@@ -88,16 +84,14 @@ class AuthService extends ChangeNotifier {
     await _handleAuthChange(_auth.currentUser);
   }
 
-  Future<void> _checkAdmin() async {
+  Future<void> _checkAdmin(String uid) async {
     try {
-      final result = await _functions
-          .httpsCallable('checkAdmin')
-          .call<Map<String, dynamic>>();
-      _isAdmin = result.data['isAdmin'] as bool? ?? false;
+      final doc = await _db.collection('admin_roles').doc(uid).get();
+      _isAdmin = doc.data()?['isAdmin'] == true;
     } catch (e) {
-      // Admin is a UI affordance only — every privileged callable re-verifies
-      // server-side — so a failure here degrades to "not an admin" rather than
-      // blocking sign-in.
+      // Admin is a UI affordance only — every privileged write re-verifies
+      // this same document via firestore.rules — so a failure here degrades
+      // to "not an admin" rather than blocking sign-in.
       _isAdmin = false;
     }
     _adminChecked = true;
@@ -152,7 +146,10 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  // Only creates the Firestore doc on first login
+  // Only creates the Firestore doc on first login. Also creates the matching
+  // /publicProfiles projection in the same batch — there is no Cloud Function
+  // trigger to do that for us on the Spark plan, so every writer of /users
+  // mirrors into /publicProfiles itself. See firestore.rules.
   Future<void> _createUserIfNew(User firebaseUser) async {
     final docRef = _db.collection('users').doc(firebaseUser.uid);
     final snap = await docRef.get();
@@ -163,7 +160,13 @@ class AuthService extends ChangeNotifier {
       displayName: firebaseUser.displayName ?? 'Anonymous',
       photoUrl: firebaseUser.photoURL ?? '',
     );
-    await docRef.set(newUser.toMap());
+    final batch = _db.batch();
+    batch.set(docRef, newUser.toMap());
+    batch.set(
+      _db.collection('publicProfiles').doc(firebaseUser.uid),
+      newUser.toPublicProfileMap(),
+    );
+    await batch.commit();
   }
 
   Future<void> signOut() async {

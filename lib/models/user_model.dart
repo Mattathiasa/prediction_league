@@ -86,6 +86,18 @@ class UserModel {
         'isPremium': isPremium,
       };
 
+  /// The projected subset written to `/publicProfiles/{uid}` alongside every
+  /// write to `/users/{uid}` — there is no server-side trigger to mirror it,
+  /// since this project stays on the Spark plan. See firestore.rules.
+  Map<String, dynamic> toPublicProfileMap() => {
+        'displayName': displayName,
+        'photoUrl': photoUrl,
+        'totalPoints': totalPoints,
+        'weeklyPoints': weeklyPoints,
+        'badgeIds': badgeIds,
+        'isPremium': isPremium,
+      };
+
   UserModel copyWith({
     String? displayName,
     String? photoUrl,
