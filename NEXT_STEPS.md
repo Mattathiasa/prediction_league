@@ -2,15 +2,19 @@
 
 Generated 2026-09-29. Delete this file once you've worked through it.
 
-## 1. Rotate the football-data.org API key — do this first
+## 1. Revoke the exposed football-data.org API key — do this first
 
 The old key `67ea0c0c…30db` is recoverable from this repo's public git history
-(`git log --all -S'<key>' -p`). Rotating is what actually protects you; the
+(`git log --all -S'<key>' -p`). Revoking it is what actually protects you; the
 history rewrite below is cosmetic by comparison.
 
-1. Get a new key: https://www.football-data.org/client/register
-2. Store it: `firebase functions:secrets:set FOOTBALL_DATA_API_KEY`
-3. Revoke the old one in your football-data.org account.
+Decided 2026-10-18: this project stays on the Spark plan and is never
+deployed live (see README's "Project status" — Cloud Functions require Blaze
+for any deployment, not just the scheduled jobs, and that's not worth a
+billing method for a portfolio piece). So there's no new key to provision or
+store in Secret Manager — just revoke the old one in your football-data.org
+account settings. If you ever do deploy this live, get a fresh key then and
+follow the README's step 4 under Setup.
 
 ## 2. Push (I could not — force-push and branch-push are blocked for me)
 
@@ -35,10 +39,14 @@ gh pr create --base main --head harden/phase-0-secrets \
 If anything looks wrong, the pre-rewrite history is at
 `backup/pre-rewrite-original` and `refs/original/refs/heads/*`.
 
-## 3. Deploy, then verify end to end
+## 3. Deploy and verify end to end — skipped, by decision
 
-Nothing below has run against a real device or project — I could only verify it
-against the emulator and the test suites.
+This step is **intentionally not happening.** Deploying Cloud Functions
+requires the Blaze plan (a billing method), which isn't worth it for a
+portfolio piece with no real users. Everything is verified against the
+emulator and the test suites instead — see README's "Project status".
+
+If you ever reconsider and want a live, device-verified instance:
 
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes,functions

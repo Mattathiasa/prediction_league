@@ -190,6 +190,11 @@ token (printed at startup) under the Debug providers.
 
 ### 7. Deploy
 
+Cloud Functions deployment requires the Blaze (pay-as-you-go) plan — this is a
+Firebase platform requirement for any function, not something specific to this
+project. This repo's own reference project intentionally stays on Spark (see
+"Project status" below), so this step has never been run against it.
+
 ```bash
 firebase deploy --only firestore:rules,functions
 ```
@@ -204,8 +209,16 @@ flutter run
 
 ## Project status
 
-Working and tested: predictions, leaderboards, private leagues, scoring, badges,
-admin tooling.
+**This project has intentionally never been deployed to a live Firebase
+project.** Cloud Functions deployment requires the Blaze plan, which means
+attaching a billing method — not worth it for a portfolio piece with no real
+users. Everything below is verified against the Firestore emulator and the
+test suites (`flutter test`, `npm test`, `npm run test:rules`), not a running
+production backend. Treat this as a demonstration of the engineering, not a
+live service.
+
+Implemented and test-covered: predictions, leaderboards, private leagues,
+scoring, badges, admin tooling.
 
 Known gaps, tracked honestly rather than hidden:
 
