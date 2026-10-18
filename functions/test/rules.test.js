@@ -3,11 +3,12 @@
  *
  * Run with:  npm run test:rules      (starts the emulator for you)
  *
- * These exist because every core feature of the app was silently denied by the
- * rules — predictions could not be created or edited, the leaderboard and league
- * standings were rejected, and leagues could not be joined. Nothing exercised the
- * rules, so nothing caught it. Each `describe` below corresponds to one of those
- * breakages; they are the regression net for that class of bug.
+ * This ruleset targets the Spark/client-driven architecture (see the header
+ * comment in firestore.rules): there is no Cloud Function layer deployed, so
+ * scoring, league joins, premium grants and fixture sync are all client
+ * writes, gated as tightly as a security-rules-only boundary allows. These
+ * tests are the regression net for that boundary — both "the intended client
+ * operation is allowed" and "everything outside its exact bounds is denied".
  */
 
 const fs = require('fs');
@@ -22,6 +23,7 @@ const {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   collection,
   query,
   orderBy,
@@ -35,6 +37,7 @@ const {
 
 const ALICE = 'alice_uid';
 const BOB = 'bob_uid';
+const ADMIN = 'admin_uid';
 
 // Kickoff far enough out that the 1-hour prediction window is open.
 const OPEN_KICKOFF = () => Timestamp.fromMillis(Date.now() + 6 * 60 * 60 * 1000);
@@ -79,10 +82,27 @@ function userDoc(uid, overrides = {}) {
   };
 }
 
+/** A publicProfiles projection exactly as created alongside userDoc(). */
+function publicProfileDoc(overrides = {}) {
+  return {
+    displayName: 'Alice',
+    photoUrl: '',
+    totalPoints: 0,
+    weeklyPoints: 0,
+    badgeIds: [],
+    isPremium: false,
+    ...overrides,
+  };
+}
+
 async function seed(fn) {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     await fn(ctx.firestore());
   });
+}
+
+async function seedAdmin(uid = ADMIN) {
+  await seed((db) => setDoc(doc(db, 'admin_roles', uid), { isAdmin: true }));
 }
 
 // ── Minimal test harness (matches the style of scoring.test.js) ───────────────
@@ -187,26 +207,154 @@ describe('users', () => {
     );
   });
 
-  it('rejects a user granting themselves premium later', async () => {
-    await seed((db) => setDoc(doc(db, 'users', ALICE), userDoc(ALICE)));
-    const db = testEnv.authenticatedContext(ALICE).firestore();
-    await assertFails(updateDoc(doc(db, 'users', ALICE), { isPremium: true }));
-  });
-
-  it('rejects a user writing their own points later', async () => {
-    await seed((db) =>
-      setDoc(doc(db, 'users', ALICE), { uid: ALICE, totalPoints: 0 })
-    );
-    const db = testEnv.authenticatedContext(ALICE).firestore();
-    await assertFails(
-      updateDoc(doc(db, 'users', ALICE), { totalPoints: 500 })
-    );
-  });
-
   it('rejects reading another user private doc', async () => {
     await seed((db) => setDoc(doc(db, 'users', BOB), { uid: BOB }));
     const db = testEnv.authenticatedContext(ALICE).firestore();
     await assertFails(getDoc(doc(db, 'users', BOB)));
+  });
+
+  // ── Self premium grant (replaces the setPremium callable) ──────────────────
+
+  it('allows a user to self-grant premium once', async () => {
+    await seed((db) => setDoc(doc(db, 'users', ALICE), userDoc(ALICE)));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(updateDoc(doc(db, 'users', ALICE), { isPremium: true }));
+  });
+
+  it('rejects a user granting someone else premium', async () => {
+    await seed((db) => setDoc(doc(db, 'users', BOB), userDoc(BOB)));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(updateDoc(doc(db, 'users', BOB), { isPremium: true }));
+  });
+
+  it('rejects a user revoking their own premium', async () => {
+    await seed((db) =>
+      setDoc(doc(db, 'users', ALICE), userDoc(ALICE, { isPremium: true }))
+    );
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(updateDoc(doc(db, 'users', ALICE), { isPremium: false }));
+  });
+
+  it('rejects a premium grant bundled with another field', async () => {
+    await seed((db) => setDoc(doc(db, 'users', ALICE), userDoc(ALICE)));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), {
+        isPremium: true,
+        totalPoints: 100,
+      })
+    );
+  });
+
+  // ── Admin scoring writes (replace scoreFixtureResults) ─────────────────────
+
+  it('allows the admin device to credit matching totalPoints/weeklyPoints', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', ALICE), userDoc(ALICE));
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', ALICE), { totalPoints: 5, weeklyPoints: 5 })
+    );
+  });
+
+  it('rejects an admin write outside the plausible points range', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', ALICE), userDoc(ALICE));
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), { totalPoints: 2, weeklyPoints: 2 })
+    );
+  });
+
+  it('rejects an admin write where totalPoints and weeklyPoints disagree', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', ALICE), userDoc(ALICE));
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), { totalPoints: 5, weeklyPoints: 3 })
+    );
+  });
+
+  it('rejects a non-admin performing a scoring-shaped write', async () => {
+    await seed((db) => setDoc(doc(db, 'users', ALICE), userDoc(ALICE)));
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), { totalPoints: 5, weeklyPoints: 5 })
+    );
+  });
+
+  it('allows the admin device to award a known badge', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', ALICE), userDoc(ALICE));
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', ALICE), {
+        badgeIds: arrayUnion('first_kick'),
+      })
+    );
+  });
+
+  it('rejects the admin device awarding an unknown badge id', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'users', ALICE), userDoc(ALICE));
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), {
+        badgeIds: arrayUnion('whatever_i_want'),
+      })
+    );
+  });
+
+  it('rejects the admin device removing an existing badge', async () => {
+    await seed(async (db) => {
+      await setDoc(
+        doc(db, 'users', ALICE),
+        userDoc(ALICE, { badgeIds: ['first_kick'] })
+      );
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), { badgeIds: [] })
+    );
+  });
+
+  it('allows the admin device to reset weeklyPoints to zero', async () => {
+    await seed(async (db) => {
+      await setDoc(
+        doc(db, 'users', ALICE),
+        userDoc(ALICE, { weeklyPoints: 12 })
+      );
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'users', ALICE), { weeklyPoints: 0 })
+    );
+  });
+
+  it('rejects the admin device resetting weeklyPoints to a non-zero value', async () => {
+    await seed(async (db) => {
+      await setDoc(
+        doc(db, 'users', ALICE),
+        userDoc(ALICE, { weeklyPoints: 12 })
+      );
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'users', ALICE), { weeklyPoints: 3 })
+    );
   });
 });
 
@@ -254,17 +402,83 @@ describe('publicProfiles', () => {
     );
   });
 
-  it('is not writable by clients', async () => {
-    const db = testEnv.authenticatedContext(ALICE).firestore();
-    await assertFails(
-      setDoc(doc(db, 'publicProfiles', ALICE), { totalPoints: 999 })
-    );
-  });
-
   it('is not readable when signed out', async () => {
     await seed((db) => setDoc(doc(db, 'publicProfiles', ALICE), { totalPoints: 1 }));
     const db = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, 'publicProfiles', ALICE)));
+  });
+
+  it('allows a user to create their own zeroed projection', async () => {
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc())
+    );
+  });
+
+  it('rejects creating a projection pre-loaded with points', async () => {
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      setDoc(
+        doc(db, 'publicProfiles', ALICE),
+        publicProfileDoc({ totalPoints: 999 })
+      )
+    );
+  });
+
+  it('rejects creating a projection for another user', async () => {
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc())
+    );
+  });
+
+  it('allows a user to mirror their own display name edit', async () => {
+    await seed((db) => setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc()));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'publicProfiles', ALICE), { displayName: 'Alice B' })
+    );
+  });
+
+  it('allows a user to mirror their own premium grant', async () => {
+    await seed((db) => setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc()));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'publicProfiles', ALICE), { isPremium: true })
+    );
+  });
+
+  it('rejects a user writing someone else projection', async () => {
+    await seed((db) => setDoc(doc(db, 'publicProfiles', BOB), publicProfileDoc()));
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'publicProfiles', BOB), { displayName: 'Hijacked' })
+    );
+  });
+
+  it('allows the admin device to mirror a scoring credit', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc());
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'publicProfiles', ALICE), {
+        totalPoints: 3,
+        weeklyPoints: 3,
+      })
+    );
+  });
+
+  it('rejects a non-admin mirroring a scoring credit', async () => {
+    await seed((db) => setDoc(doc(db, 'publicProfiles', ALICE), publicProfileDoc()));
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'publicProfiles', ALICE), {
+        totalPoints: 3,
+        weeklyPoints: 3,
+      })
+    );
   });
 });
 
@@ -452,6 +666,64 @@ describe('predictions', () => {
     const db = testEnv.authenticatedContext(BOB).firestore();
     await assertFails(getDoc(doc(db, 'predictions', 'alice_fx1')));
   });
+
+  // ── Admin scoring (replaces scoreFixtureResults) ────────────────────────────
+
+  it('allows the admin device to lock a prediction at a plausible score', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'predictions', 'alice_fx1'), predictionDoc());
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'predictions', 'alice_fx1'), {
+        pointsEarned: 5,
+        locked: true,
+      })
+    );
+  });
+
+  it('rejects the admin device writing an implausible point value', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'predictions', 'alice_fx1'), predictionDoc());
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'predictions', 'alice_fx1'), {
+        pointsEarned: 2,
+        locked: true,
+      })
+    );
+  });
+
+  it('rejects the admin device re-locking an already-scored prediction', async () => {
+    await seed(async (db) => {
+      await setDoc(
+        doc(db, 'predictions', 'alice_fx1'),
+        predictionDoc({ locked: true, pointsEarned: 5 })
+      );
+      await seedAdmin();
+    });
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'predictions', 'alice_fx1'), {
+        pointsEarned: 0,
+        locked: true,
+      })
+    );
+  });
+
+  it('rejects a non-admin performing a scoring-shaped update', async () => {
+    await seed((db) => setDoc(doc(db, 'predictions', 'alice_fx1'), predictionDoc()));
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'predictions', 'alice_fx1'), {
+        pointsEarned: 5,
+        locked: true,
+      })
+    );
+  });
 });
 
 // ── Leagues ───────────────────────────────────────────────────────────────────
@@ -476,30 +748,60 @@ describe('leagues', () => {
     await assertFails(setDoc(doc(db, 'leagues', 'lg1'), league()));
   });
 
-  it('hides leagues you are not a member of', async () => {
+  it('allows reading a league you are not a member of', async () => {
+    // Read is open to any signed-in user — joining still requires knowing
+    // the invite code, which is the actual gate; see firestore.rules.
     await seed((db) => setDoc(doc(db, 'leagues', 'lg1'), league()));
     const db = testEnv.authenticatedContext(BOB).firestore();
-    await assertFails(getDoc(doc(db, 'leagues', 'lg1')));
+    await assertSucceeds(getDoc(doc(db, 'leagues', 'lg1')));
   });
 
-  it('rejects enumerating leagues by invite code', async () => {
-    // Joining goes through the joinLeague callable precisely so that this
-    // query does not have to be allowed — permitting it would make every
-    // league in the database world-readable.
+  it('allows resolving a league by its invite code', async () => {
     await seed((db) => setDoc(doc(db, 'leagues', 'lg1'), league()));
     const db = testEnv.authenticatedContext(BOB).firestore();
-    await assertFails(
+    await assertSucceeds(
       getDocs(
         query(collection(db, 'leagues'), where('inviteCode', '==', 'ABC123'))
       )
     );
   });
 
-  it('rejects a client-side self-join', async () => {
+  it('allows a signed-in user to join by adding only themselves', async () => {
     await seed((db) => setDoc(doc(db, 'leagues', 'lg1'), league()));
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertSucceeds(
+      updateDoc(doc(db, 'leagues', 'lg1'), { memberIds: arrayUnion(BOB) })
+    );
+  });
+
+  it('rejects joining past the 20-member cap', async () => {
+    const full = Array.from({ length: 20 }, (_, i) => `member_${i}`);
+    await seed((db) =>
+      setDoc(doc(db, 'leagues', 'lg1'), league({ memberIds: full }))
+    );
     const db = testEnv.authenticatedContext(BOB).firestore();
     await assertFails(
       updateDoc(doc(db, 'leagues', 'lg1'), { memberIds: arrayUnion(BOB) })
+    );
+  });
+
+  it('rejects a self-join that also smuggles in a second new member', async () => {
+    await seed((db) => setDoc(doc(db, 'leagues', 'lg1'), league()));
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'leagues', 'lg1'), {
+        memberIds: [ALICE, BOB, 'carol_uid'],
+      })
+    );
+  });
+
+  it('rejects an already-member "joining" again as a no-op write to other fields', async () => {
+    await seed((db) =>
+      setDoc(doc(db, 'leagues', 'lg1'), league({ memberIds: [ALICE, BOB] }))
+    );
+    const db = testEnv.authenticatedContext(BOB).firestore();
+    await assertFails(
+      updateDoc(doc(db, 'leagues', 'lg1'), { memberIds: [ALICE, BOB] })
     );
   });
 
@@ -571,7 +873,6 @@ describe('leagues', () => {
       setDoc(doc(db, 'leagues', 'lg1'), league({ memberIds: [ALICE, BOB] }))
     );
     const db = testEnv.authenticatedContext(BOB).firestore();
-    const { deleteDoc } = require('firebase/firestore');
     await assertFails(deleteDoc(doc(db, 'leagues', 'lg1')));
   });
 });
@@ -587,10 +888,23 @@ describe('fixtures and admin_roles', () => {
     await assertSucceeds(getDoc(doc(db, 'fixtures', 'fx1')));
   });
 
-  it('rejects a client writing a fixture', async () => {
+  it('rejects a non-admin client writing a fixture', async () => {
     const db = testEnv.authenticatedContext(ALICE).firestore();
     await assertFails(
       setDoc(doc(db, 'fixtures', 'fx1'), { fixtureId: 'fx1', homeScore: 9 })
+    );
+  });
+
+  it('allows the admin device to sync a fixture', async () => {
+    await seedAdmin();
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'fixtures', 'fx1'), {
+        fixtureId: 'fx1',
+        status: 'upcoming',
+        homeTeam: 'Arsenal',
+        awayTeam: 'Chelsea',
+      })
     );
   });
 
@@ -605,6 +919,33 @@ describe('fixtures and admin_roles', () => {
     await seed((db) => setDoc(doc(db, 'fixtures', 'fx1'), { fixtureId: 'fx1' }));
     const db = testEnv.unauthenticatedContext().firestore();
     await assertFails(getDoc(doc(db, 'fixtures', 'fx1')));
+  });
+});
+
+// ── Weekly-reset marker ────────────────────────────────────────────────────────
+
+describe('meta/weeklyReset', () => {
+  it('allows the admin device to write the reset marker', async () => {
+    await seedAdmin();
+    const db = testEnv.authenticatedContext(ADMIN).firestore();
+    await assertSucceeds(
+      setDoc(doc(db, 'meta', 'weeklyReset'), { lastRunWeekStart: '2026-10-12' })
+    );
+  });
+
+  it('rejects a non-admin writing the reset marker', async () => {
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(
+      setDoc(doc(db, 'meta', 'weeklyReset'), { lastRunWeekStart: '2026-10-12' })
+    );
+  });
+
+  it('rejects a non-admin reading the reset marker', async () => {
+    await seed((db) =>
+      setDoc(doc(db, 'meta', 'weeklyReset'), { lastRunWeekStart: '2026-10-12' })
+    );
+    const db = testEnv.authenticatedContext(ALICE).firestore();
+    await assertFails(getDoc(doc(db, 'meta', 'weeklyReset')));
   });
 });
 
