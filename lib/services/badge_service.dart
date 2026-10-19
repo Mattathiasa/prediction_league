@@ -1,5 +1,5 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../theme/app_colors.dart';
 
 class BadgeInfo {
   final String id;
@@ -32,7 +32,7 @@ class BadgeService {
           name: 'First Kick',
           description: 'Submitted your very first prediction',
           icon: Icons.sports_soccer,
-          color: Color(0xFF4CAF50),
+          color: AppColors.accent,
         );
       case onFire:
         return const BadgeInfo(
@@ -40,7 +40,7 @@ class BadgeService {
           name: 'On Fire',
           description: '5 correct results in a row',
           icon: Icons.local_fire_department,
-          color: Color(0xFFFF7043),
+          color: AppColors.live,
         );
       case sniper:
         return const BadgeInfo(
@@ -48,7 +48,7 @@ class BadgeService {
           name: 'Sniper',
           description: 'Predicted an exact scoreline',
           icon: Icons.gps_fixed,
-          color: Color(0xFFFFD700),
+          color: AppColors.gold,
         );
       default:
         return BadgeInfo(
@@ -58,69 +58,6 @@ class BadgeService {
           icon: Icons.emoji_events,
           color: Colors.white38,
         );
-    }
-  }
-
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-
-  // Awards a badge (arrayUnion is idempotent — safe to call multiple times)
-  Future<void> awardBadge(String userId, String badgeId) async {
-    await _db.collection('users').doc(userId).update({
-      'badgeIds': FieldValue.arrayUnion([badgeId]),
-    });
-  }
-
-  // Called after a result is scored — checks on_fire and sniper for each userId
-  Future<void> checkAndAwardPostResultBadges(String userId) async {
-    final snap = await _db
-        .collection('predictions')
-        .where('userId', isEqualTo: userId)
-        .where('locked', isEqualTo: true)
-        .get();
-
-    if (snap.docs.isEmpty) return;
-
-    // Sort by submission time to determine streak order
-    final preds = snap.docs.map((d) => d.data()).toList()
-      ..sort((a, b) {
-        final ta = (a['submittedAt'] as Timestamp).millisecondsSinceEpoch;
-        final tb = (b['submittedAt'] as Timestamp).millisecondsSinceEpoch;
-        return ta.compareTo(tb);
-      });
-
-    final userSnap = await _db.collection('users').doc(userId).get();
-    final currentBadges =
-        List<String>.from(userSnap.data()?['badgeIds'] as List? ?? []);
-
-    final toAward = <String>[];
-
-    // Sniper: any exact scoreline (5 pts)
-    if (!currentBadges.contains(sniper)) {
-      if (preds.any((p) => (p['pointsEarned'] as int? ?? 0) == 5)) {
-        toAward.add(sniper);
-      }
-    }
-
-    // On Fire: 5+ consecutive predictions with points > 0
-    if (!currentBadges.contains(onFire)) {
-      int streak = 0;
-      for (final p in preds) {
-        if ((p['pointsEarned'] as int? ?? 0) > 0) {
-          streak++;
-          if (streak >= 5) {
-            toAward.add(onFire);
-            break;
-          }
-        } else {
-          streak = 0;
-        }
-      }
-    }
-
-    if (toAward.isNotEmpty) {
-      await _db.collection('users').doc(userId).update({
-        'badgeIds': FieldValue.arrayUnion(toAward),
-      });
     }
   }
 }

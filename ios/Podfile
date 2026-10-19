@@ -39,5 +39,14 @@ end
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
+    # Fix for google_mobile_ads: non-modular header issue with use_frameworks!
+    # The GoogleMobileAds SDK has non-modular private headers that cause
+    # module compilation errors when DEFINES_MODULE is enabled.
+    if target.name == 'google_mobile_ads'
+      target.build_configurations.each do |config|
+        config.build_settings['DEFINES_MODULE'] = 'NO'
+        config.build_settings['DEFINES_PRIVATE_SWIFT_MODULE'] = 'NO'
+      end
+    end
   end
 end

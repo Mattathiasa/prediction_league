@@ -31,6 +31,25 @@ class UserModel {
     this.isPremium = false,
   });
 
+  /// Builds a user from a `/publicProfiles/{uid}` document.
+  ///
+  /// That collection is a server-maintained projection carrying only the fields
+  /// other users are allowed to see, so everything else falls back to its
+  /// default. Kept separate from [UserModel.fromFirestore] so it is obvious at
+  /// the call site that the private stats on the result are placeholders rather
+  /// than real values.
+  factory UserModel.fromPublicProfile(Map<String, dynamic> data, String uid) {
+    return UserModel(
+      uid: uid,
+      displayName: data['displayName'] as String? ?? '',
+      photoUrl: data['photoUrl'] as String? ?? '',
+      totalPoints: data['totalPoints'] as int? ?? 0,
+      weeklyPoints: data['weeklyPoints'] as int? ?? 0,
+      badgeIds: List<String>.from(data['badgeIds'] as List? ?? const []),
+      isPremium: data['isPremium'] as bool? ?? false,
+    );
+  }
+
   factory UserModel.fromFirestore(Map<String, dynamic> data, String uid) {
     return UserModel(
       uid: uid,
@@ -51,21 +70,33 @@ class UserModel {
   }
 
   Map<String, dynamic> toMap() => {
-          'uid': uid,
-          'displayName': displayName,
-          'photoUrl': photoUrl,
-          'totalPoints': totalPoints,
-          'weeklyPoints': weeklyPoints,
-          'streak': streak,
-          'bestStreak': bestStreak,
-          'accuracy': accuracy,
-          'badgeIds': badgeIds,
-          'highestWeeklyPoints': highestWeeklyPoints,
-          'predictionsCount': predictionsCount,
-      'correctResults': correctResults,
-      'exactScoreCount': exactScoreCount,
-      'isPremium': isPremium,
-        };
+        'uid': uid,
+        'displayName': displayName,
+        'photoUrl': photoUrl,
+        'totalPoints': totalPoints,
+        'weeklyPoints': weeklyPoints,
+        'streak': streak,
+        'bestStreak': bestStreak,
+        'accuracy': accuracy,
+        'badgeIds': badgeIds,
+        'highestWeeklyPoints': highestWeeklyPoints,
+        'predictionsCount': predictionsCount,
+        'correctResults': correctResults,
+        'exactScoreCount': exactScoreCount,
+        'isPremium': isPremium,
+      };
+
+  /// The projected subset written to `/publicProfiles/{uid}` alongside every
+  /// write to `/users/{uid}` — there is no server-side trigger to mirror it,
+  /// since this project stays on the Spark plan. See firestore.rules.
+  Map<String, dynamic> toPublicProfileMap() => {
+        'displayName': displayName,
+        'photoUrl': photoUrl,
+        'totalPoints': totalPoints,
+        'weeklyPoints': weeklyPoints,
+        'badgeIds': badgeIds,
+        'isPremium': isPremium,
+      };
 
   UserModel copyWith({
     String? displayName,

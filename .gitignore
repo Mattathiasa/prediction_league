@@ -5,9 +5,11 @@
 *.swp
 .DS_Store
 .atom/
+.build/
 .buildlog/
 .history
 .svn/
+.swiftpm/
 migrate_working_dir/
 
 # IntelliJ related
@@ -46,3 +48,24 @@ app.*.map.json
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
+
+# Cloud Functions
+functions/node_modules/
+functions/lib/
+functions/*.log
+
+# Environment / secrets — never commit these
+.env
+.env.*
+functions/.env
+functions/.env.*
+functions/.runtimeconfig.json
+
+# Firebase CLI cache
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# ...but do track the template
+!functions/.env.example

@@ -1,9 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
+import '../widgets/user_avatar.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -33,21 +35,24 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     final currentUserId = context.read<AuthService>().userModel!.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Leaderboard',
           style: TextStyle(
-              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF4CAF50),
+          labelColor: AppColors.accent,
           unselectedLabelColor: Colors.white38,
-          indicatorColor: const Color(0xFF4CAF50),
+          indicatorColor: AppColors.accent,
           indicatorSize: TabBarIndicatorSize.label,
           tabs: const [
             Tab(text: 'All Time'),
@@ -59,9 +64,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         controller: _tabController,
         children: [
           _LeaderboardTab(
-              sortField: 'totalPoints', currentUserId: currentUserId),
+            sortField: 'totalPoints',
+            currentUserId: currentUserId,
+          ),
           _LeaderboardTab(
-              sortField: 'weeklyPoints', currentUserId: currentUserId),
+            sortField: 'weeklyPoints',
+            currentUserId: currentUserId,
+          ),
         ],
       ),
     );
@@ -74,8 +83,7 @@ class _LeaderboardTab extends StatefulWidget {
   final String sortField;
   final String currentUserId;
 
-  const _LeaderboardTab(
-      {required this.sortField, required this.currentUserId});
+  const _LeaderboardTab({required this.sortField, required this.currentUserId});
 
   @override
   State<_LeaderboardTab> createState() => _LeaderboardTabState();
@@ -87,27 +95,33 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      // Reads /publicProfiles rather than /users: the latter is readable only
+      // by its owner, so this query was rejected outright and the leaderboard
+      // never rendered a single row.
       stream: FirebaseFirestore.instance
-          .collection('users')
+          .collection('publicProfiles')
           .orderBy(widget.sortField, descending: true)
           .limit(_limit)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+            child: CircularProgressIndicator(color: AppColors.accent),
+          );
         }
 
         if (snapshot.hasError) {
           return Center(
-            child: Text('Error: ${snapshot.error}',
-                style: const TextStyle(color: Colors.white54),
-                textAlign: TextAlign.center),
+            child: Text(
+              'Error: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white54),
+              textAlign: TextAlign.center,
+            ),
           );
         }
 
         final users = (snapshot.data?.docs ?? [])
-            .map((d) => UserModel.fromFirestore(d.data(), d.id))
+            .map((d) => UserModel.fromPublicProfile(d.data(), d.id))
             .toList();
 
         if (users.isEmpty) {
@@ -115,12 +129,19 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.emoji_events_outlined,
-                    size: 56, color: Colors.white12),
+                Icon(
+                  Icons.emoji_events_outlined,
+                  size: 56,
+                  color: Colors.white12,
+                ),
                 SizedBox(height: 12),
-                Text('No players yet',
-                    style: TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold)),
+                Text(
+                  'No players yet',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           );
@@ -134,8 +155,7 @@ class _LeaderboardTabState extends State<_LeaderboardTab> {
           separatorBuilder: (_, __) => const SizedBox(height: 8),
           itemBuilder: (context, i) {
             if (i == users.length) {
-              return _LoadMoreButton(
-                  onTap: () => setState(() => _limit += 20));
+              return _LoadMoreButton(onTap: () => setState(() => _limit += 20));
             }
             return _RankCard(
               rank: i + 1,
@@ -169,18 +189,16 @@ class _RankCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final pts =
         sortField == 'weeklyPoints' ? user.weeklyPoints : user.totalPoints;
-    final rankCol = _rankColor(rank);
+    final rankCol = AppColors.forRank(rank);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
-        color: isCurrentUser
-            ? const Color(0xFF1E3A5F)
-            : const Color(0xFF1A1A2E),
+        color: isCurrentUser ? AppColors.gradientStart : AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isCurrentUser
-              ? const Color(0xFF4CAF50).withValues(alpha: 0.45)
+              ? AppColors.accent.withValues(alpha: 0.45)
               : Colors.white.withValues(alpha: 0.05),
         ),
       ),
@@ -195,37 +213,44 @@ class _RankCard extends StatelessWidget {
                     '#$rank',
                     textAlign: TextAlign.center,
                     style: const TextStyle(
-                        color: Colors.white38,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
+                      color: Colors.white38,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
           ),
           const SizedBox(width: 10),
           // Avatar
-          _MiniAvatar(
-              photoUrl: user.photoUrl, displayName: user.displayName),
+          UserAvatar(photoUrl: user.photoUrl, displayName: user.displayName),
           const SizedBox(width: 12),
           // Name + accuracy
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  isCurrentUser ? '${user.displayName} (you)' : user.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: isCurrentUser ? Colors.white : Colors.white70,
-                    fontWeight: isCurrentUser
-                        ? FontWeight.bold
-                        : FontWeight.w500,
-                    fontSize: 14,
-                  ),
+                Row(
+                  children: [
+                    if (user.isPremium)
+                      const Icon(Icons.star, color: AppColors.gold, size: 12),
+                    if (user.isPremium) const SizedBox(width: 4),
+                    Text(
+                      isCurrentUser
+                          ? '${user.displayName} (you)'
+                          : user.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isCurrentUser ? Colors.white : Colors.white70,
+                        fontWeight:
+                            isCurrentUser ? FontWeight.bold : FontWeight.w500,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
                 ),
                 Text(
                   '${user.accuracy.toStringAsFixed(1)}% accuracy',
-                  style:
-                      const TextStyle(color: Colors.white38, fontSize: 11),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
                 ),
               ],
             ),
@@ -234,62 +259,23 @@ class _RankCard extends StatelessWidget {
           Text(
             '$pts',
             style: TextStyle(
-                color: rankCol, fontWeight: FontWeight.bold, fontSize: 16),
+              color: rankCol,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
           ),
           const SizedBox(width: 4),
-          const Text('pts',
-              style: TextStyle(color: Colors.white38, fontSize: 11)),
+          const Text(
+            'pts',
+            style: TextStyle(color: Colors.white38, fontSize: 11),
+          ),
         ],
       ),
     );
   }
-
-  Color _rankColor(int r) {
-    if (r == 1) return const Color(0xFFFFD700);
-    if (r == 2) return const Color(0xFFBDBDBD);
-    if (r == 3) return const Color(0xFFCD7F32);
-    return Colors.white70;
-  }
 }
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
-
-class _MiniAvatar extends StatelessWidget {
-  final String photoUrl;
-  final String displayName;
-
-  const _MiniAvatar({required this.photoUrl, required this.displayName});
-
-  @override
-  Widget build(BuildContext context) {
-    if (photoUrl.isNotEmpty) {
-      return CircleAvatar(
-        radius: 18,
-        backgroundColor: const Color(0xFF4CAF50),
-        child: ClipOval(
-          child: CachedNetworkImage(
-            imageUrl: photoUrl,
-            width: 36,
-            height: 36,
-            fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => _initials(),
-          ),
-        ),
-      );
-    }
-    return CircleAvatar(
-      radius: 18,
-      backgroundColor: const Color(0xFF4CAF50),
-      child: _initials(),
-    );
-  }
-
-  Widget _initials() => Text(
-        displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-        style: const TextStyle(
-            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
-      );
-}
 
 // ── Load more button ──────────────────────────────────────────────────────────
 
@@ -302,10 +288,9 @@ class _LoadMoreButton extends StatelessWidget {
     return Center(
       child: TextButton.icon(
         onPressed: onTap,
-        icon: const Icon(Icons.expand_more,
-            color: Color(0xFF4CAF50), size: 18),
-        label: const Text('Load more',
-            style: TextStyle(color: Color(0xFF4CAF50))),
+        icon: const Icon(Icons.expand_more, color: AppColors.accent, size: 18),
+        label:
+            const Text('Load more', style: TextStyle(color: AppColors.accent)),
       ),
     );
   }

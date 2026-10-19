@@ -1,33 +1,70 @@
-import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
 import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
+
 import 'firebase_options.dart';
 import 'providers/fixture_provider.dart';
 import 'providers/league_provider.dart';
 import 'providers/prediction_provider.dart';
+import 'screens/auth_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/verify_email_screen.dart';
 import 'services/auth_service.dart';
 import 'services/notification_service.dart';
 import 'services/subscription_service.dart';
-import 'screens/auth_screen.dart';
-import 'screens/verify_email_screen.dart';
-import 'screens/home_screen.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
+  // runZonedGuarded catches errors raised outside the Flutter framework's own
+  // zone — async gaps in services, stream listeners, platform callbacks. Without
+  // it (and without Crashlytics at all, previously) a production crash was
+  // invisible: there was no reporting, no analytics and no error boundary.
+  await runZonedGuarded(_bootstrap, (error, stack) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+  });
+}
+
+Future<void> _bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   tz.initializeTimeZones();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
+  // Debug builds would otherwise flood the dashboard with crashes from
+  // half-finished work.
+  await FirebaseCrashlytics.instance
+      .setCrashlyticsCollectionEnabled(!kDebugMode);
+  FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true),
+    );
+    return true;
+  };
+
+  // Release builds attest with the real providers. Debug builds cannot — a
+  // locally-signed APK fails Play Integrity — so without this branch every
+  // Firestore read and callable fails on a development device.
+  // Register the token this prints in Firebase console → App Check → Debug.
   await FirebaseAppCheck.instance.activate(
-    androidProvider: AndroidProvider.playIntegrity,
-    appleProvider: AppleProvider.deviceCheck,
+    androidProvider:
+        kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+    appleProvider: kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
   );
 
-  MobileAds.instance.initialize();
+  // Deliberately not awaited: ad SDK startup should not delay first paint.
+  unawaited(MobileAds.instance.initialize());
 
   await NotificationService.initialize();
   await NotificationService.requestPermission();
@@ -73,7 +110,7 @@ class PredictionLeagueApp extends StatelessWidget {
           update: (_, auth, prev) {
             final provider = prev ?? SubscriptionService();
             if (auth.isEmailVerified && auth.userModel != null) {
-              provider.init(auth.userModel!.uid);
+              unawaited(provider.init(auth.userModel!.uid));
             } else if (auth.userModel == null) {
               provider.reset();
             }
@@ -84,13 +121,7 @@ class PredictionLeagueApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Prediction League',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFF4CAF50),
-            brightness: Brightness.dark,
-          ),
-          useMaterial3: true,
-        ),
+        theme: AppTheme.dark,
         home: const _AuthWrapper(),
       ),
     );
@@ -106,10 +137,19 @@ class _AuthWrapper extends StatelessWidget {
 
     if (!auth.initialized) {
       return const Scaffold(
-        backgroundColor: Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         body: Center(
-          child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+          child: CircularProgressIndicator(color: AppColors.accent),
         ),
+      );
+    }
+
+    // Startup reached a decision but could not complete it — almost always no
+    // network. Without this the app sat on the spinner above indefinitely.
+    if (auth.startupError != null && auth.userModel == null) {
+      return _StartupErrorScreen(
+        message: auth.startupError!,
+        onRetry: auth.retryStartup,
       );
     }
 
@@ -118,5 +158,57 @@ class _AuthWrapper extends StatelessWidget {
             ? const HomeScreen()
             : const VerifyEmailScreen())
         : const AuthScreen();
+  }
+}
+
+class _StartupErrorScreen extends StatelessWidget {
+  const _StartupErrorScreen({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.cloud_off, size: 56, color: Colors.white24),
+              const SizedBox(height: 20),
+              const Text(
+                'Cannot connect',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.accent,
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

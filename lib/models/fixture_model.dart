@@ -29,45 +29,6 @@ class FixtureModel {
   bool get isLive => status == 'live';
   bool get isUpcoming => status == 'upcoming';
 
-  // ── From football-data.org API ──────────────────────────────────────────────
-  factory FixtureModel.fromApi(Map<String, dynamic> json) {
-    final rawStatus = json['status'] as String? ?? 'SCHEDULED';
-    final score = (json['score'] as Map<String, dynamic>?)?['fullTime']
-            as Map<String, dynamic>? ??
-        {};
-
-    String status;
-    switch (rawStatus) {
-      case 'FINISHED':
-      case 'AWARDED':
-        status = 'finished';
-        break;
-      case 'IN_PLAY':
-      case 'PAUSED':
-      case 'HALFTIME':
-        status = 'live';
-        break;
-      default:
-        status = 'upcoming';
-    }
-
-    final homeTeamData = json['homeTeam'] as Map<String, dynamic>;
-    final awayTeamData = json['awayTeam'] as Map<String, dynamic>;
-
-    return FixtureModel(
-      fixtureId: json['id'].toString(),
-      homeTeam: homeTeamData['shortName'] as String? ??
-          homeTeamData['name'] as String,
-      awayTeam: awayTeamData['shortName'] as String? ??
-          awayTeamData['name'] as String,
-      kickoff: DateTime.parse(json['utcDate'] as String),
-      homeScore: score['home'] as int?,
-      awayScore: score['away'] as int?,
-      status: status,
-      competition: 'Premier League',
-    );
-  }
-
   // ── From Firestore ──────────────────────────────────────────────────────────
   factory FixtureModel.fromFirestore(Map<String, dynamic> data, String id) {
     return FixtureModel(

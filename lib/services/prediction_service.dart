@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/fixture_model.dart';
 import '../models/prediction_model.dart';
-import 'badge_service.dart';
 
 class HistoryEntry {
   final FixtureModel? fixture;
@@ -11,8 +10,10 @@ class HistoryEntry {
 }
 
 class PredictionService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final BadgeService _badges = BadgeService();
+  final FirebaseFirestore _db;
+
+  PredictionService({FirebaseFirestore? db})
+      : _db = db ?? FirebaseFirestore.instance;
 
   String _docId(String userId, String fixtureId) => '${userId}_$fixtureId';
 
@@ -34,23 +35,28 @@ class PredictionService {
       homeGuess: homeGuess,
       awayGuess: awayGuess,
       submittedAt: DateTime.now(),
-      locked: false,
     );
 
-    await _db.collection('predictions').doc(docId).set(prediction.toMap());
+    final ref = _db.collection('predictions').doc(docId);
 
-    // Award first_kick badge if user doesn't have it yet
-    _awardFirstKickIfNeeded(userId);
-  }
-
-  // Fire-and-forget — runs after the prediction is saved
-  Future<void> _awardFirstKickIfNeeded(String userId) async {
-    final userSnap = await _db.collection('users').doc(userId).get();
-    final badges =
-        List<String>.from(userSnap.data()?['badgeIds'] as List? ?? []);
-    if (!badges.contains(BadgeService.firstKick)) {
-      await _badges.awardBadge(userId, BadgeService.firstKick);
+    // An edit must be an update, not a set. `set` rewrites the whole document,
+    // including the server-managed pointsEarned and locked fields, which the
+    // rules reject — every attempt to change an existing prediction failed.
+    final existing = await ref.get();
+    if (existing.exists) {
+      await ref.update({
+        'homeGuess': homeGuess,
+        'awayGuess': awayGuess,
+        'submittedAt': Timestamp.fromDate(prediction.submittedAt),
+      });
+    } else {
+      await ref.set(prediction.toMap());
     }
+
+    // Badges are awarded by FixtureService.scoreFixtureResults, run by the
+    // admin device when a fixture is scored — not here. A client write to
+    // badgeIds from this method would be denied by firestore.rules, which
+    // only allows that field to change via the admin-gated branch.
   }
 
   Stream<List<PredictionModel>> userPredictions(String userId) {
@@ -58,9 +64,11 @@ class PredictionService {
         .collection('predictions')
         .where('userId', isEqualTo: userId)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
+              .toList(),
+        );
   }
 
   // Scored predictions only (locked == true), newest fixture first
@@ -70,9 +78,11 @@ class PredictionService {
         .where('userId', isEqualTo: userId)
         .where('locked', isEqualTo: true)
         .snapshots()
-        .map((snap) => snap.docs
-            .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
-            .toList());
+        .map(
+          (snap) => snap.docs
+              .map((d) => PredictionModel.fromFirestore(d.data(), d.id))
+              .toList(),
+        );
   }
 
   // Combined stream: scored predictions joined with their fixtures
@@ -89,8 +99,10 @@ class PredictionService {
       final fixtureMap = {for (final f in fixtures) f.fixtureId: f};
 
       final history = predictions
-          .map((p) => HistoryEntry(
-              fixture: fixtureMap[p.fixtureId], prediction: p))
+          .map(
+            (p) =>
+                HistoryEntry(fixture: fixtureMap[p.fixtureId], prediction: p),
+          )
           .toList()
         ..sort((a, b) {
           final aTime = a.fixture?.kickoff ?? a.prediction.submittedAt;
@@ -103,9 +115,13 @@ class PredictionService {
   }
 
   Future<PredictionModel?> getPrediction(
-      String userId, String fixtureId) async {
-    final snap =
-        await _db.collection('predictions').doc(_docId(userId, fixtureId)).get();
+    String userId,
+    String fixtureId,
+  ) async {
+    final snap = await _db
+        .collection('predictions')
+        .doc(_docId(userId, fixtureId))
+        .get();
     if (!snap.exists) return null;
     return PredictionModel.fromFirestore(snap.data()!, snap.id);
   }
@@ -125,8 +141,9 @@ class _FixtureLookup {
           .collection('fixtures')
           .where(FieldPath.documentId, whereIn: chunk)
           .get();
-      all.addAll(snap.docs
-          .map((d) => FixtureModel.fromFirestore(d.data(), d.id)));
+      all.addAll(
+        snap.docs.map((d) => FixtureModel.fromFirestore(d.data(), d.id)),
+      );
     }
     return all;
   }

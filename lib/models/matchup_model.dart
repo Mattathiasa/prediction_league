@@ -5,7 +5,7 @@ class LeagueMatchup {
   final UserModel? away;
   final bool isBye;
 
-  LeagueMatchup({required this.home, this.away, this.isBye = false});
+  const LeagueMatchup({required this.home, this.away, this.isBye = false});
 
   int get homePoints => home.weeklyPoints;
   int get awayPoints => away?.weeklyPoints ?? 0;

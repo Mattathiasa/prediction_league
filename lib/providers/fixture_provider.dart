@@ -12,7 +12,14 @@ class FixtureProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get syncError => _syncError;
 
-  Stream<List<FixtureModel>> get fixturesStream => _service.upcomingFixtures();
+  Stream<List<FixtureModel>>? _fixturesStream;
+
+  /// Cached deliberately. Returning `_service.upcomingFixtures()` directly
+  /// handed back a new Stream object on every access, and StreamBuilder
+  /// compares streams by identity — so every rebuild tore down the Firestore
+  /// listener and re-established it.
+  Stream<List<FixtureModel>> get fixturesStream =>
+      _fixturesStream ??= _service.upcomingFixtures().asBroadcastStream();
 
   Future<void> syncFixtures() async {
     _isLoading = true;

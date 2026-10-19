@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/league_provider.dart';
-import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 
 class JoinLeagueScreen extends StatefulWidget {
   const JoinLeagueScreen({super.key});
@@ -31,22 +31,21 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
     }
 
     setState(() => _joining = true);
-    final user = context.read<AuthService>().userModel!;
 
-    final result = await context.read<LeagueProvider>().joinLeagueByCode(
-          code: code,
-          userId: user.uid,
-        );
+    // The caller's uid comes from the auth context on the server, so it is not
+    // passed here.
+    final leagueId =
+        await context.read<LeagueProvider>().joinLeagueByCode(code: code);
 
     if (!mounted) return;
     setState(() => _joining = false);
 
-    if (result != null) {
-      Navigator.pop(context, result);
+    if (leagueId != null) {
+      Navigator.pop(context, leagueId);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Joined "${result.name}"!'),
-          backgroundColor: const Color(0xFF4CAF50),
+        const SnackBar(
+          content: Text('Joined the league!'),
+          backgroundColor: AppColors.accent,
         ),
       );
     } else {
@@ -63,32 +62,38 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Join a League',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'Join a League',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Invite Code',
-                style: TextStyle(
-                    color: Colors.white54,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600)),
+            const Text(
+              'Invite Code',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _codeController,
               style: const TextStyle(
-                color: Color(0xFF4CAF50),
+                color: AppColors.accent,
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 8,
@@ -105,19 +110,21 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
               decoration: InputDecoration(
                 hintText: 'ABC123',
                 hintStyle: const TextStyle(
-                    color: Colors.white12,
-                    fontSize: 30,
-                    letterSpacing: 8),
+                  color: Colors.white12,
+                  fontSize: 30,
+                  letterSpacing: 8,
+                ),
                 counterText: '',
                 filled: true,
-                fillColor: const Color(0xFF1A1A2E),
+                fillColor: AppColors.surface,
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide.none),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide:
-                        const BorderSide(color: Color(0xFF4CAF50))),
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: const BorderSide(color: AppColors.accent),
+                ),
               ),
               onSubmitted: (_) => _join(),
             ),
@@ -133,19 +140,27 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
               child: ElevatedButton(
                 onPressed: _joining ? null : _join,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4CAF50),
+                  backgroundColor: AppColors.accent,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
                 ),
                 child: _joining
                     ? const SizedBox(
                         width: 22,
                         height: 22,
                         child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2.5))
-                    : const Text('Join League',
+                          color: Colors.white,
+                          strokeWidth: 2.5,
+                        ),
+                      )
+                    : const Text(
+                        'Join League',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -158,7 +173,9 @@ class _JoinLeagueScreenState extends State<JoinLeagueScreen> {
 class _UpperCaseFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
-      TextEditingValue oldValue, TextEditingValue newValue) {
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     return TextEditingValue(
       text: newValue.text.toUpperCase(),
       selection: newValue.selection,

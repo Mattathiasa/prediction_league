@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 
 class AuthScreen extends StatelessWidget {
   const AuthScreen({super.key});
@@ -10,7 +11,7 @@ class AuthScreen extends StatelessWidget {
     final auth = context.watch<AuthService>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -22,13 +23,13 @@ class AuthScreen extends StatelessWidget {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1E3A5F),
+                  color: AppColors.gradientStart,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: const Icon(
                   Icons.sports_soccer,
                   size: 56,
-                  color: Color(0xFF4CAF50),
+                  color: AppColors.accent,
                 ),
               ),
               const SizedBox(height: 24),
@@ -53,7 +54,7 @@ class AuthScreen extends StatelessWidget {
               ),
               const Spacer(),
               auth.isLoading
-                  ? const CircularProgressIndicator(color: Color(0xFF4CAF50))
+                  ? const CircularProgressIndicator(color: AppColors.accent)
                   : _GoogleSignInButton(
                       onPressed: () async {
                         try {
@@ -91,7 +92,7 @@ class _GoogleSignInButton extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.white,
-          foregroundColor: const Color(0xFF1F1F1F),
+          foregroundColor: AppColors.googleForeground,
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -104,7 +105,7 @@ class _GoogleSignInButton extends StatelessWidget {
               width: 26,
               height: 26,
               decoration: const BoxDecoration(
-                color: Color(0xFF4285F4),
+                color: AppColors.googleBlue,
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,

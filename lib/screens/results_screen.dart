@@ -6,30 +6,45 @@ import '../models/prediction_model.dart';
 import '../providers/prediction_provider.dart';
 import '../services/fixture_service.dart';
 import '../services/scoring_service.dart';
+import '../theme/app_colors.dart';
 
-class ResultsScreen extends StatelessWidget {
+class ResultsScreen extends StatefulWidget {
   const ResultsScreen({super.key});
+
+  @override
+  State<ResultsScreen> createState() => _ResultsScreenState();
+}
+
+class _ResultsScreenState extends State<ResultsScreen> {
+  // Created once. Building this inside build() constructed a fresh service and
+  // a fresh stream on every rebuild, re-subscribing to Firestore each time.
+  late final Stream<List<FixtureModel>> _finishedFixtures =
+      FixtureService().finishedFixtures();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Results',
-            style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 18)),
+        title: const Text(
+          'Results',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+          ),
+        ),
       ),
       body: StreamBuilder<List<FixtureModel>>(
-        stream: FixtureService().finishedFixtures(),
+        stream: _finishedFixtures,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: Color(0xFF4CAF50)));
+              child: CircularProgressIndicator(color: AppColors.accent),
+            );
           }
 
           final fixtures = snapshot.data ?? [];
@@ -44,8 +59,7 @@ class ResultsScreen extends StatelessWidget {
           // Compute a quick summary from predictions for the visible fixtures only
           final visibleFixtureIds = fixtures.map((f) => f.fixtureId).toSet();
           final scored = predProvider.predictions.values
-              .where((p) =>
-                  p.locked && visibleFixtureIds.contains(p.fixtureId))
+              .where((p) => p.locked && visibleFixtureIds.contains(p.fixtureId))
               .toList();
           final totalEarned =
               scored.fold<int>(0, (sum, p) => sum + p.pointsEarned);
@@ -53,9 +67,10 @@ class ResultsScreen extends StatelessWidget {
           return Column(
             children: [
               _SummaryBar(
-                  finishedCount: fixtures.length,
-                  pointsEarned: totalEarned,
-                  predictedCount: scored.length),
+                finishedCount: fixtures.length,
+                pointsEarned: totalEarned,
+                predictedCount: scored.length,
+              ),
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -63,10 +78,12 @@ class ResultsScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, i) {
                     final fixture = fixtures[i];
-                    final prediction = predProvider
-                        .predictionForFixture(fixture.fixtureId);
+                    final prediction =
+                        predProvider.predictionForFixture(fixture.fixtureId);
                     return _ResultCard(
-                        fixture: fixture, prediction: prediction);
+                      fixture: fixture,
+                      prediction: prediction,
+                    );
                   },
                 ),
               ),
@@ -98,7 +115,7 @@ class _SummaryBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A5F), Color(0xFF0D2137)],
+          colors: [AppColors.gradientStart, AppColors.gradientEnd],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -107,23 +124,25 @@ class _SummaryBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          _SummaryStat(
-              label: 'Matches', value: '$finishedCount'),
+          _SummaryStat(label: 'Matches', value: '$finishedCount'),
+          _divider(),
+          _SummaryStat(label: 'Predicted', value: '$predictedCount'),
           _divider(),
           _SummaryStat(
-              label: 'Predicted', value: '$predictedCount'),
-          _divider(),
-          _SummaryStat(
-              label: 'Points earned',
-              value: '$pointsEarned',
-              highlight: true),
+            label: 'Points earned',
+            value: '$pointsEarned',
+            highlight: true,
+          ),
         ],
       ),
     );
   }
 
   Widget _divider() => Container(
-      width: 1, height: 32, color: Colors.white.withValues(alpha: 0.1));
+        width: 1,
+        height: 32,
+        color: Colors.white.withValues(alpha: 0.1),
+      );
 }
 
 class _SummaryStat extends StatelessWidget {
@@ -131,23 +150,29 @@ class _SummaryStat extends StatelessWidget {
   final String value;
   final bool highlight;
 
-  const _SummaryStat(
-      {required this.label, required this.value, this.highlight = false});
+  const _SummaryStat({
+    required this.label,
+    required this.value,
+    this.highlight = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Text(value,
-            style: TextStyle(
-                color: highlight
-                    ? const Color(0xFF4CAF50)
-                    : Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold)),
+        Text(
+          value,
+          style: TextStyle(
+            color: highlight ? AppColors.accent : Colors.white,
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 2),
-        Text(label,
-            style: const TextStyle(color: Colors.white38, fontSize: 11)),
+        Text(
+          label,
+          style: const TextStyle(color: Colors.white38, fontSize: 11),
+        ),
       ],
     );
   }
@@ -170,7 +195,7 @@ class _ResultCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
@@ -180,112 +205,132 @@ class _ResultCard extends StatelessWidget {
           Row(
             children: [
               Expanded(
-                child: Text(fixture.homeTeam,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
-                    maxLines: 2),
+                child: Text(
+                  fixture.homeTeam,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                ),
               ),
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 10),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0D2137),
+                  color: AppColors.gradientEnd,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
                   '${fixture.homeScore ?? '?'} – ${fixture.awayScore ?? '?'}',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18),
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
               Expanded(
-                child: Text(fixture.awayTeam,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13),
-                    maxLines: 2),
+                child: Text(
+                  fixture.awayTeam,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                  maxLines: 2,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-               // Prediction + points row
-           Row(
-             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-             children: [
-               // My prediction
-               Row(
-                 children: [
-                   const Icon(Icons.person_outline,
-                       size: 14, color: Colors.white38),
-                   const SizedBox(width: 5),
-                   Text(
-                     prediction != null
-                         ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
-                         : 'No prediction',
-                     style: const TextStyle(
-                         color: Colors.white54, fontSize: 13),
-                   ),
-                 ],
-               ),
-               // Points badge + share button
-               Row(
-                 children: [
-                   // Points badge
-                   Container(
-                     padding:
-                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                     decoration: BoxDecoration(
-                       color: color.withValues(alpha: 0.12),
-                       borderRadius: BorderRadius.circular(8),
-                       border: Border.all(
-                           color: color.withValues(alpha: 0.45), width: 0.5),
-                     ),
-                     child: Row(
-                       mainAxisSize: MainAxisSize.min,
-                       children: [
-                         Text(
-                           pts >= 0 ? '+$pts' : '$pts',
-                           style: TextStyle(
-                               color: color,
-                               fontSize: 13,
-                               fontWeight: FontWeight.bold),
-                         ),
-                         const SizedBox(width: 5),
-                         Text(label,
-                             style: TextStyle(
-                                 color: color.withValues(alpha: 0.8),
-                                 fontSize: 11)),
-                       ],
-                     ),
-                   ),
-                   // Share button
-                    if (prediction != null)
-                     Padding(
-                       padding: const EdgeInsets.only(left: 8),
-                       child: GestureDetector(
-                         onTap: () => SharePlus.instance.share(
-                           ShareParams(
-                             text: '${prediction!.homeGuess}\u2013${prediction!.awayGuess} '
-                                 'for ${fixture.homeTeam} vs ${fixture.awayTeam} '
-                                 '(${fixture.homeScore ?? '?'}\u2013${fixture.awayScore ?? '?'}) '
-                                 '\u2192 $label ($pts pts)',
-                           ),
-                         ),
-                         child: const Icon(Icons.share, color: Colors.white38, size: 18),
-                       ),
-                     ),
-                 ],
-               ),
-             ],
-           ),
+          // Prediction + points row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // My prediction
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 14,
+                    color: Colors.white38,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    prediction != null
+                        ? 'You: ${prediction!.homeGuess}–${prediction!.awayGuess}'
+                        : 'No prediction',
+                    style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  ),
+                ],
+              ),
+              // Points badge + share button
+              Row(
+                children: [
+                  // Points badge
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: color.withValues(alpha: 0.45),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          pts >= 0 ? '+$pts' : '$pts',
+                          style: TextStyle(
+                            color: color,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          label,
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.8),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Share button
+                  if (prediction != null)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8),
+                      child: GestureDetector(
+                        onTap: () => SharePlus.instance.share(
+                          ShareParams(
+                            text:
+                                '${prediction!.homeGuess}\u2013${prediction!.awayGuess} '
+                                'for ${fixture.homeTeam} vs ${fixture.awayTeam} '
+                                '(${fixture.homeScore ?? '?'}\u2013${fixture.awayScore ?? '?'}) '
+                                '\u2192 $label ($pts pts)',
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.share,
+                          color: Colors.white38,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ],
       ),
     );
@@ -305,12 +350,15 @@ class _EmptyResults extends StatelessWidget {
         children: [
           Icon(Icons.hourglass_empty, size: 64, color: Colors.white12),
           SizedBox(height: 16),
-          Text('No results yet',
-              style:
-                  TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          Text(
+            'No results yet',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
           SizedBox(height: 6),
-          Text('Results appear here once matches finish',
-              style: TextStyle(color: Colors.white38, fontSize: 13)),
+          Text(
+            'Results appear here once matches finish',
+            style: TextStyle(color: Colors.white38, fontSize: 13),
+          ),
         ],
       ),
     );

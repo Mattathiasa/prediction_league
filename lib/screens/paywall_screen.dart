@@ -1,8 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
+
 import '../services/auth_service.dart';
 import '../services/subscription_service.dart';
+import '../theme/app_colors.dart';
 
 class PaywallScreen extends StatefulWidget {
   const PaywallScreen({super.key});
@@ -16,10 +20,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final userId =
-          context.read<AuthService>().userModel?.uid;
+      final userId = context.read<AuthService>().userModel?.uid;
       final sub = context.read<SubscriptionService>();
-      if (userId != null) sub.init(userId);
+      if (userId != null) unawaited(sub.init(userId));
     });
   }
 
@@ -29,9 +32,9 @@ class _PaywallScreenState extends State<PaywallScreen> {
     final auth = context.watch<AuthService>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F1A),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F0F1A),
+        backgroundColor: AppColors.background,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
@@ -45,7 +48,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
       ),
       body: sub.loading
           ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF4CAF50)),
+              child: CircularProgressIndicator(color: AppColors.accent),
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(24),
@@ -73,7 +76,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     title: 'Ad-Free Experience',
                     description: 'No banner ads on the home screen '
                         'and main pages',
-                    color: Color(0xFF29B6F6),
+                    color: AppColors.info,
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
@@ -81,7 +84,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     title: 'Premium Badge',
                     description: 'Special badge on your profile '
                         'and leaderboard entries',
-                    color: Color(0xFF4CAF50),
+                    color: AppColors.accent,
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
@@ -89,7 +92,7 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     title: 'Cloud Sync',
                     description: 'Server-side fixture syncing via '
                         'Cloud Functions',
-                    color: Color(0xFFFFD700),
+                    color: AppColors.gold,
                   ),
                   const SizedBox(height: 14),
                   const _FeatureCard(
@@ -97,14 +100,16 @@ class _PaywallScreenState extends State<PaywallScreen> {
                     title: 'No Ads',
                     description: 'Completely ad-free experience '
                         'across all screens',
-                    color: Color(0xFF9C27B0),
+                    color: AppColors.premium,
                   ),
                   const SizedBox(height: 32),
-                  ...sub.products.map((product) => _ProductButton(
-                        product: product,
-                        service: sub,
-                        userId: auth.userModel?.uid ?? '',
-                      )),
+                  ...sub.products.map(
+                    (product) => _ProductButton(
+                      product: product,
+                      service: sub,
+                      userId: auth.userModel?.uid ?? '',
+                    ),
+                  ),
                   TextButton(
                     onPressed: () =>
                         sub.restorePurchases(userId: auth.userModel?.uid),
@@ -138,7 +143,7 @@ class _FeatureCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1A1A2E),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
       ),
@@ -181,7 +186,11 @@ class _ProductButton extends StatelessWidget {
   final SubscriptionService service;
   final String userId;
 
-  const _ProductButton({required this.product, required this.service, required this.userId});
+  const _ProductButton({
+    required this.product,
+    required this.service,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -196,9 +205,8 @@ class _ProductButton extends StatelessWidget {
               ? null
               : () => service.buy(product, userId),
           style: ElevatedButton.styleFrom(
-            backgroundColor: isCurrentlyPurchased
-                ? const Color(0xFF333344)
-                : const Color(0xFF4CAF50),
+            backgroundColor:
+                isCurrentlyPurchased ? AppColors.outline : AppColors.accent,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),

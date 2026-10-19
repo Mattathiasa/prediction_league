@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+	<!-- Required by google_mobile_ads; MobileAds.initialize() throws without it. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3210681117962880~9348060115</string>
+	<!-- Answers the App Store export-compliance question up front; without it
+	     every TestFlight build stalls awaiting manual input. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>CFBundleDevelopmentRegion</key>
